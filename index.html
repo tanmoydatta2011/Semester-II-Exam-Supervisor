@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Examination Management Portal - Vivekananda Mahavidyalaya</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <!-- PDF.js for Routine Extraction -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+  <style>
+    :root { --primary: #1F4E78; --bg: #f4f7fb; --card-bg: #ffffff; --border: #e1e8ed; --text: #333333; --accent: #27ae60; --highlight: #d35400; --danger: #c0392b; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 0; }
+    
+    .header { background-color: var(--primary); color: white; padding: 20px 0; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .header h1 { margin: 0; font-size: 26px; letter-spacing: 0.5px; }
+    .header h3 { margin: 5px 0 0 0; font-size: 16px; font-weight: normal; color: #e1e8ed; }
+    
+    .nav-tabs { display: flex; justify-content: center; background-color: var(--primary); border-bottom: 2px solid var(--border); padding-top: 10px; flex-wrap: wrap; }
+    .tab-btn { background-color: rgba(255,255,255,0.1); color: white; border: none; padding: 12px 18px; font-size: 14px; font-weight: bold; cursor: pointer; border-radius: 8px 8px 0 0; margin: 0 5px; transition: 0.3s; }
+    .tab-btn:hover { background-color: rgba(255,255,255,0.2); }
+    .tab-btn.active { background-color: var(--bg); color: var(--primary); }
+
+    .container { max-width: 1300px; margin: 25px auto; padding: 0 20px; }
+    .portal-section { display: none; animation: fadeIn 0.4s; }
+    .portal-section.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    .card { background: var(--card-bg); padding: 25px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; border-top: 4px solid var(--primary); }
+    h2 { margin-top: 0; color: var(--primary); margin-bottom: 15px; font-size: 19px; }
+    .form-group { margin-bottom: 15px; }
+    input[type="file"], input[type="text"], input[type="number"], select { width: 100%; max-width: 400px; padding: 9px; border: 1px solid var(--border); border-radius: 4px; font-size: 14px; margin-top: 5px; box-sizing: border-box; }
+    
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; }
+    .grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; }
+    .grid-5 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr; gap: 10px; }
+    .grid-6 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr; gap: 10px; }
+    .checkbox-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; max-height: 250px; overflow-y: auto; padding: 15px; border: 1px solid var(--border); border-radius: 4px; background: #fafafa; }
+    .checkbox-item { display: flex; align-items: center; }
+    .checkbox-item input { margin-right: 8px; cursor: pointer; }
+    
+    button { background-color: var(--primary); color: white; border: none; padding: 10px 18px; border-radius: 4px; font-size: 14px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+    button:hover { background-color: #153654; }
+    button.success { background-color: var(--accent); }
+    button.success:hover { background-color: #219653; }
+    button.danger { background-color: var(--danger); padding: 6px 12px; font-size: 12px; }
+    button.danger:hover { background-color: #9c2b20; }
+    button.outline { background-color: transparent; color: var(--primary); border: 2px solid var(--primary); }
+    button.outline:hover { background-color: #e8f0fe; }
+    .btn-secondary { background-color: #e1e8ed; color: #333; padding: 6px 12px; font-size: 13px; font-weight: normal; margin-right: 8px; }
+    
+    .hidden { display: none !important; }
+    .table-container { overflow-x: auto; max-height: 450px; overflow-y: auto; border: 1px solid var(--border); border-radius: 4px; margin-bottom: 20px;}
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); padding: 8px 12px; text-align: left; white-space: nowrap; font-size: 13px; }
+    th { background-color: var(--primary); color: white; position: sticky; top: 0; z-index: 10; }
+    tr:nth-child(even) { background-color: #f9f9f9; }
+    
+    .status-badge { display: inline-block; padding: 4px 12px; background-color: #e6f4ea; color: #137333; border-radius: 12px; font-size: 12px; font-weight: bold; margin-top: 5px; border: 1px solid #b7e1cd; }
+    .download-section { display: flex; align-items: center; gap: 10px; margin-top: 20px; background: #f9f9f9; padding: 15px; border-radius: 8px; border: 1px solid var(--border); flex-wrap: wrap; }
+    hr.divider { border: 1px solid var(--border); margin: 35px 0; }
+    
+    /* Supervisor Styles */
+    .supervisor-workspace { display: flex; gap: 20px; margin-top: 20px; height: 500px; }
+    .sidebar { width: 260px; background: #fdfdfd; border: 1px solid var(--border); border-radius: 8px; display: flex; flex-direction: column; }
+    .sidebar-header { background: var(--primary); color: white; padding: 12px; font-weight: bold; border-radius: 8px 8px 0 0; }
+    .sidebar-list { flex-grow: 1; overflow-y: auto; padding: 10px; }
+    .room-item { padding: 10px 15px; margin-bottom: 8px; border-radius: 6px; cursor: pointer; background: #ffffff; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; transition: 0.2s; font-weight: bold; font-size: 14px; }
+    .room-item:hover { background: #e8f0fe; border-color: var(--primary); }
+    .room-item.active { background: #e8f0fe; border: 2px solid var(--primary); }
+    .room-item.pending { border-left: 5px solid #f39c12; }
+    .room-item.completed { border-left: 5px solid #27ae60; }
+    .main-panel { flex-grow: 1; background: #ffffff; border: 1px solid var(--border); border-radius: 8px; padding: 20px; overflow-y: auto; }
+    .panel-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-bottom: 20px; }
+    .panel-header h3 { margin: 0; color: var(--primary); }
+    .attend-row { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid var(--border); }
+    .attend-row.absent { background: #fdeded; }
+    .extra-box { background: #fef9e7; padding: 15px; border-radius: 6px; margin-top: 20px; border: 1px dashed var(--highlight); }
+    .corner-box { border: 2px dashed var(--primary); padding: 20px; border-radius: 8px; background: #fef9e7; }
+
+    /* PDF Extractor Blocks */
+    .session-block { margin-bottom: 15px; padding: 12px; border: 1px solid var(--border); border-radius: 6px; background: #ffffff; }
+    .session-header { font-weight: bold; color: var(--primary); margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 5px; display: flex; justify-content: space-between; }
+    .pdf-checkbox-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+    .pdf-checkbox-label { font-size: 13px; display: flex; align-items: flex-start; cursor: pointer; }
+    .pdf-checkbox-label input { margin-right: 6px; margin-top: 2px; }
+
+    /* ========================================= */
+    /* MOBILE RESPONSIVENESS CSS                 */
+    /* ========================================= */
+    @media (max-width: 768px) {
+        .header { padding: 15px 10px; }
+        .header h1 { font-size: 20px; }
+        .header h3 { font-size: 13px; }
+        .nav-tabs { flex-direction: column; padding: 10px; gap: 5px; }
+        .tab-btn { margin: 0; border-radius: 6px; width: 100%; box-sizing: border-box; text-align: center; }
+        .container { padding: 0 10px; margin: 15px auto; }
+        .card { padding: 15px; }
+        .grid-2, .grid-3, .grid-4, .grid-5, .grid-6 { grid-template-columns: 1fr; gap: 10px; }
+        
+        input[type="file"], input[type="text"], input[type="number"], select, button { 
+            width: 100% !important; 
+            max-width: 100% !important; 
+            box-sizing: border-box; 
+        }
+        
+        .download-section { flex-direction: column; align-items: stretch; gap: 8px; }
+        .download-section input, .download-section button { margin: 0 !important; width: 100% !important; }
+        .export-inputs { flex-direction: column; align-items: stretch; gap: 10px; }
+        
+        .supervisor-workspace { flex-direction: column; height: auto; }
+        .sidebar { width: 100%; height: 200px; border-radius: 8px; }
+        .main-panel { width: 100%; height: auto; min-height: 300px; padding: 15px; border-radius: 8px; }
+        
+        .responsive-header { flex-direction: column !important; align-items: stretch !important; gap: 10px; }
+        .responsive-header-inner { flex-direction: column; align-items: stretch !important; gap: 10px; }
+        
+        .attend-row { flex-direction: column; align-items: stretch; gap: 10px; text-align: left; }
+        .search-row { flex-direction: column; align-items: stretch; }
+    }
+  </style>
+
+</head>
+<body>
+<div class="header">
+            <h1>Examination Management Portal</h1>
+            <h3>Vivekananda Mahavidyalaya, Haripal, Hooghly</h3>
+            <h4 style="margin: 5px 0 0 0; font-weight: normal; color: #f39c12;">Supervisor Offline Portal - Standalone</h4>
+        </div>
+        <div class="container"><div id="p5_workspaceContainer" class="card" style="padding: 15px;">
+        <div class="responsive-header" style="border-bottom: 1px solid var(--border); padding-bottom: 15px; margin-bottom: 15px;">
+           <div class="responsive-header-inner">
+              <h2 style="margin:0;">Attendance Workspace</h2>
+              <select id="p5_sessionSelect" onchange="p5_loadSession()" style="width: 300px; margin:0; font-weight:bold;"><option value="06.10.2026 (Tuesday) - Morning">06.10.2026 (Tuesday) - Morning</option><option value="06.10.2026 (Tuesday) - Afternoon">06.10.2026 (Tuesday) - Afternoon</option><option value="07.10.2026 (Wednesday) - Morning">07.10.2026 (Wednesday) - Morning</option><option value="07.10.2026 (Wednesday) - Afternoon">07.10.2026 (Wednesday) - Afternoon</option><option value="12.10.2026 (Monday) - Morning">12.10.2026 (Monday) - Morning</option><option value="12.10.2026 (Monday) - Afternoon">12.10.2026 (Monday) - Afternoon</option><option value="13.10.2026 (Tuesday) - Morning">13.10.2026 (Tuesday) - Morning</option><option value="13.10.2026 (Tuesday) - Afternoon">13.10.2026 (Tuesday) - Afternoon</option><option value="14.10.2026 (Wednesday) - Morning">14.10.2026 (Wednesday) - Morning</option><option value="14.10.2026 (Wednesday) - Afternoon">14.10.2026 (Wednesday) - Afternoon</option></select>
+           </div>
+        </div>
+
+        <div class="supervisor-workspace">
+           <div class="sidebar">
+              <div class="sidebar-header">Rooms (<span id="p5_roomCount">12</span>)</div>
+              <div class="sidebar-list" id="p5_roomList"><div class="room-item pending"><span>Asstt. Center-in-Charge &amp; Supervisor</span> <span>Pending</span></div><div class="room-item pending"><span>F-1</span> <span>Pending</span></div><div class="room-item pending"><span>F-4</span> <span>Pending</span></div><div class="room-item pending"><span>F-5</span> <span>Pending</span></div><div class="room-item pending"><span>F-6</span> <span>Pending</span></div><div class="room-item pending"><span>F-6A</span> <span>Pending</span></div><div class="room-item pending"><span>F-7</span> <span>Pending</span></div><div class="room-item pending"><span>F-9</span> <span>Pending</span></div><div class="room-item pending"><span>F-11</span> <span>Pending</span></div><div class="room-item pending"><span>F-19</span> <span>Pending</span></div><div class="room-item pending"><span>F-23</span> <span>Pending</span></div><div class="room-item pending"><span>Staff Room (Reserve)</span> <span>Pending</span></div></div>
+           </div>
+
+           <div class="main-panel" id="p5_mainPanel" style="display:none;">
+              <div class="panel-header">
+                 <h3 id="p5_roomTitle">Room F-1</h3>
+                 <span id="p5_roomStatusBadge" class="status-badge">Pending</span>
+              </div>
+              
+              <div id="p5_invigListContainer"></div>
+
+              <div class="extra-box">
+                 <h4 style="margin-top:0; color:var(--highlight);">+ Add Replacement or Extra Invigilator</h4>
+                 <div class="search-row" style="display:flex; gap:10px;">
+                    <select id="p5_extraFacultySelect" style="flex-grow:1; margin:0;"></select>
+                    <button type="button" class="outline" onclick="p5_addExtraInvig()">Add to Room</button>
+                 </div>
+              </div>
+
+              <div style="margin-top: 30px; text-align: right;">
+                 <button type="button" class="success" style="padding: 12px 30px;" onclick="p5_saveRoom()">Save Room Attendance</button>
+              </div>
+           </div>
+           
+           <div id="p5_emptyPanel" style="flex-grow: 1; display:flex; align-items:center; justify-content:center; color:#999; font-weight:bold;">
+              Select a room from the left sidebar to manage attendance.
+           </div>
+        </div>
+        
+        <!-- NEW SUPERVISOR EXPORT REPORTS UI -->
+        <div style="background: #fdfdfd; padding: 15px; border: 1px solid var(--border); border-radius: 6px; margin-top: 20px;">
+           <h4 style="margin-top:0; color:var(--primary); font-size: 14px;">Supervisor Reports &amp; Export Settings:</h4>
+           <div class="export-inputs" style="display: flex; gap: 10px; margin-bottom: 10px; max-width: 900px;">
+              <input type="text" id="p5_docx_collegeName" value="Vivekananda Mahavidyalaya, Haripal, Hooghly" placeholder="College Name">
+              <input type="text" id="p5_docx_examName" value="UG Examination 2026" placeholder="Exam Name">
+              <input type="text" id="p5_docx_semester" value="Semester - I" placeholder="Semester">
+           </div>
+           <div class="download-section" style="margin-top: 10px; padding: 0; border: none; background: transparent;">
+              <button type="button" class="success" onclick="p5_exportRemuneration()">Download Presence/ Absence Report</button>
+              <button type="button" class="success" style="background:#8e44ad;" onclick="p5_exportFacultyExcel()">Faculty-wise Report (Excel)</button>
+              <button type="button" class="success" style="background-color: #34495e;" onclick="p5_exportFacultyDOCX()">Faculty-wise Report (DOCX)</button>
+              <button type="button" class="success" style="background: #d35400;" onclick="p5_exportStandaloneHTML(false)">Save Progress (Download Portal)</button>
+           </div>
+        </div>
+      </div></div>
+
+<script>
+            window.isStandalonePortal = true;
+            let p2_DEFAULT_CODES = {"Bengali":"BENG","Education":"EDUC","English":"ENGL","Geography":"GEOG","Mathematics":"MATH","Anthropology":"ANTH","Botany":"BOTN","Chemistry":"CHEM","Computer Science":"COMP","Physics":"PHYS","Psychology":"PSYC","Zoology":"ZOOL","Business Administration (BBA)":"BBA","History":"HIST","Music":"MUSC","Philosophy":"PHIL","Political Science":"POLS","Sanskrit":"SANS","Santali":"SANT","Sociology":"SOCI","Physical Education & Sports":"PEDS","Accounting & Management":"COMM","Computer Applications (BCA)":"BCA","Economics":"ECON","Business Administration (T&H)":"BBTH","Physical Education":"PEDS","Nutrition":"NUTR","Microbiology":"MCRO","Electronics":"ELEC","Environmental Science":"ENVS","Bio-Chemistry":"BCHM","Bio-Technology":"BTCH","Geology":"GEOL","Physiology":"PHYG","Statistics":"STAT","Plant Protection":"PLPT","Defence Studies":"DFST","Fine Arts (BFA)":"BFA","Mass Communication & Journalism":"MACJ","Urdu":"URDU","French":"FREN","Hindi":"HIND","Arabic":"ARAB","L1-1 -Arabic":"ARAB"};
+            let p5_chartData = [{"Date":"06.10.2026 (Tuesday)","Shift":"Morning","Room No":"F-1","Subjects":"BENGALI, ANTHROPOLOGY","Students":26,"Invigilator 1":"Dr. Sampa Ghosh","Invigilator 2":"Saswati Mukjherjee"},{"Date":"06.10.2026 (Tuesday)","Shift":"Morning","Room No":"F-4","Subjects":"BENGALI","Students":30,"Invigilator 1":"Dr. Rituparna Ghosh","Invigilator 2":"Mitra Sarkar"},{"Date":"06.10.2026 (Tuesday)","Shift":"Morning","Room No":"F-5","Subjects":"BENGALI","Students":76,"Invigilator 1":"Dr. Bidhan Chandra Biswas","Invigilator 2":"Md Bagbul Islam","Invigilator 3":"Ashim Kumar Adhya","Invigilator 4":"Bablu Tudu"},{"Date":"06.10.2026 (Tuesday)","Shift":"Morning","Room No":"F-6","Subjects":"BENGALI, BOTANY, BUSINESS ADMINISTRATION","Students":36,"Invigilator 1":"Dr. Partha Chatterjee","Invigilator 2":"Dr. Debtanu Ghosh"},{"Date":"06.10.2026 (Tuesday)","Shift":"Morning","Room No":"F-6A","Subjects":"COMPUTER SCIENCE, CHEMISTRY, BUSINESS ADMINISTRATION","Students":38,"Invigilator 1":"Anjan Dasgupta","Invigilator 2":"Jhumpa Pal Datta"},{"Date":"06.10.2026 (Tuesday)","Shift":"Morning","Room No":"F-7","Subjects":"COMPUTER SCIENCE, EDUCATION","Students":44,"Invigilator 1":"Dr. Ajay Bhattacharya","Invigilator 2":"Sukla Dey Sarkar"},{"Date":"06.10.2026 (Tuesday)","Shift":"Morning","Room No":"F-9","Subjects":"EDUCATION, ENGLISH","Students":36,"Invigilator 1":"Dr. Animesh Bhattachrayya","Invigilator 2":"Tapasi Jana Das"},{"Date":"06.10.2026 (Tuesday)","Shift":"Morning","Room No":"F-11","Subjects":"ENGLISH","Students":32,"Invigilator 1":"Biswajit Patra","Invigilator 2":"Dr. Saikat Banerjee"},{"Date":"06.10.2026 (Tuesday)","Shift":"Morning","Room No":"F-19","Subjects":"ENGLISH, GEOGRAPHY, MATHEMATICS","Students":32,"Invigilator 1":"Anal Mondal","Invigilator 2":"Parimal Kumar Bera"},{"Date":"06.10.2026 (Tuesday)","Shift":"Morning","Room No":"F-23","Subjects":"PHYSICS, ZOOLOGY, PSYCHOLOGY","Students":28,"Invigilator 1":"Dr. Sibtosh Bandyopadhyay","Invigilator 2":"Abhijit Pakhira"},{"Date":"06.10.2026 (Tuesday)","Shift":"Morning","Room No":"Staff Room (Reserve)","Subjects":"-","Students":"-","Invigilator 1":"Mithu Ray, Reserve","Invigilator 2":"Pradip Kr Chakraborty, Reserve","Invigilator 3":"Sanjoy Kumar, Reserve","Invigilator 4":"Kalicharan Ghosh, Reserve"},{"Date":"06.10.2026 (Tuesday)","Shift":"Morning","Room No":"Asstt. Center-in-Charge & Supervisor","Subjects":"-","Students":"-","Invigilator 1":"Dr. Uday Datta, Asstt. Center-in-Charge","Invigilator 2":"Dr. Tanmoy Datta, Supervisor","Invigilator 3":"Tanmoy Dey, Supervisor"},{"Date":"06.10.2026 (Tuesday)","Shift":"Afternoon","Room No":"F-1","Subjects":"ACCOUNTING & MANAGEMENT","Students":26,"Invigilator 1":"Priyanka Chowdhuri","Invigilator 2":"Dr. Rina Banerjee Ghosh"},{"Date":"06.10.2026 (Tuesday)","Shift":"Afternoon","Room No":"F-4","Subjects":"ACCOUNTING & MANAGEMENT, COMPUTER APPLICATIONS","Students":30,"Invigilator 1":"Dr. Mainak Kumar De","Invigilator 2":"Saswati Sarkar"},{"Date":"06.10.2026 (Tuesday)","Shift":"Afternoon","Room No":"F-5","Subjects":"HISTORY, PHILOSOPHY, COMPUTER APPLICATIONS","Students":76,"Invigilator 1":"Dr. Nandita Barui","Invigilator 2":"Dr. Abid Hasan","Invigilator 3":"Shanta Kundu","Invigilator 4":"Dr. Dulal Kumbhakar"},{"Date":"06.10.2026 (Tuesday)","Shift":"Afternoon","Room No":"F-6","Subjects":"PHILOSOPHY, PHYSICAL EDUCATION & SPORTS","Students":36,"Invigilator 1":"Prosenjit Ghosh","Invigilator 2":"Sayan Dey"},{"Date":"06.10.2026 (Tuesday)","Shift":"Afternoon","Room No":"F-6A","Subjects":"PHYSICAL EDUCATION & SPORTS, POLITICAL SCIENCE, SANSKRIT","Students":38,"Invigilator 1":"Dr. Dipan Das","Invigilator 2":"Dr. Koushik Chakraborty"},{"Date":"06.10.2026 (Tuesday)","Shift":"Afternoon","Room No":"F-7","Subjects":"SANSKRIT, SOCIOLOGY, SANTALI","Students":43,"Invigilator 1":"Aniruddha Chatterjee","Invigilator 2":"Dr. Ayan Kanti Ghosh"},{"Date":"06.10.2026 (Tuesday)","Shift":"Afternoon","Room No":"Staff Room (Reserve)","Subjects":"-","Students":"-","Invigilator 1":"Sukanya Nandy, Reserve","Invigilator 2":"Dr. Aparajita Choudhury, Reserve","Invigilator 3":"Gourab Ghosh, Reserve"},{"Date":"06.10.2026 (Tuesday)","Shift":"Afternoon","Room No":"Asstt. Center-in-Charge & Supervisor","Subjects":"-","Students":"-","Invigilator 1":"Dr. Uday Datta, Asstt. Center-in-Charge","Invigilator 2":"Dr. Tanmoy Datta, Supervisor","Invigilator 3":"Tanmoy Dey, Supervisor"},{"Date":"07.10.2026 (Wednesday)","Shift":"Morning","Room No":"F-1","Subjects":"BENGALI","Students":26,"Invigilator 1":"Mitali Mukhopadhyay","Invigilator 2":"Dr. Ananda Mukherjee"},{"Date":"07.10.2026 (Wednesday)","Shift":"Morning","Room No":"F-4","Subjects":"BENGALI","Students":30,"Invigilator 1":"Prasenjit Roy","Invigilator 2":"Dr. Suvajit Samanta"},{"Date":"07.10.2026 (Wednesday)","Shift":"Morning","Room No":"F-5","Subjects":"BENGALI, BOTANY","Students":76,"Invigilator 1":"Dr. Sandip Kumar Mondal","Invigilator 2":"Dr. Chandan Kumar Dan","Invigilator 3":"Kalpana Das","Invigilator 4":"Lipika Paul"},{"Date":"07.10.2026 (Wednesday)","Shift":"Morning","Room No":"F-6","Subjects":"BOTANY, BUSINESS ADMINISTRATION","Students":36,"Invigilator 1":"Chayan Das","Invigilator 2":"Kathika Adak"},{"Date":"07.10.2026 (Wednesday)","Shift":"Morning","Room No":"F-6A","Subjects":"BUSINESS ADMINISTRATION","Students":38,"Invigilator 1":"Dr. Chiranjib Konar","Invigilator 2":"Mousumi Pramanik Pal"},{"Date":"07.10.2026 (Wednesday)","Shift":"Morning","Room No":"F-7","Subjects":"CHEMISTRY, COMPUTER SCIENCE, EDUCATION","Students":44,"Invigilator 1":"Sanchaita Ghosh","Invigilator 2":"Sampad Chowdhuri"},{"Date":"07.10.2026 (Wednesday)","Shift":"Morning","Room No":"F-9","Subjects":"EDUCATION","Students":36,"Invigilator 1":"Sourav Kumar Modak","Invigilator 2":"Sk Abdul Rofik"},{"Date":"07.10.2026 (Wednesday)","Shift":"Morning","Room No":"F-19","Subjects":"EDUCATION","Students":50,"Invigilator 1":"Dr. Angira Das","Invigilator 2":"Sugata Adak"},{"Date":"07.10.2026 (Wednesday)","Shift":"Morning","Room No":"F-23","Subjects":"EDUCATION, ENGLISH, GEOGRAPHY, MATHEMATICS, PHYSICS, ZOOLOGY","Students":34,"Invigilator 1":"Dr. Bidhan Chandra Biswas","Invigilator 2":"Suman Maji"},{"Date":"07.10.2026 (Wednesday)","Shift":"Morning","Room No":"Staff Room (Reserve)","Subjects":"-","Students":"-","Invigilator 1":"Indrajit Chatterjee, Reserve","Invigilator 2":"Madhumanti Sinha, Reserve","Invigilator 3":"Madhupa Samanta, Reserve","Invigilator 4":"Priya Patra, Reserve"},{"Date":"07.10.2026 (Wednesday)","Shift":"Morning","Room No":"Asstt. Center-in-Charge & Supervisor","Subjects":"-","Students":"-","Invigilator 1":"Dr. Uday Datta, Asstt. Center-in-Charge","Invigilator 2":"Dr. Tanmoy Datta, Supervisor","Invigilator 3":"Tanmoy Dey, Supervisor"},{"Date":"07.10.2026 (Wednesday)","Shift":"Afternoon","Room No":"F-1","Subjects":"ACCOUNTING & MANAGEMENT","Students":26,"Invigilator 1":"Dr. Rajib Majumder","Invigilator 2":"Somjit Banerjee"},{"Date":"07.10.2026 (Wednesday)","Shift":"Afternoon","Room No":"F-4","Subjects":"ACCOUNTING & MANAGEMENT, COMPUTER APPLICATIONS","Students":30,"Invigilator 1":"Prothoma Saha","Invigilator 2":"Souvik Chattopadhyay"},{"Date":"07.10.2026 (Wednesday)","Shift":"Afternoon","Room No":"F-5","Subjects":"ECONOMICS, HISTORY, COMPUTER APPLICATIONS","Students":76,"Invigilator 1":"Soma Mitra","Invigilator 2":"Pramila Soren","Invigilator 3":"Sramana Chatterjee","Invigilator 4":"Subhadeep Dutta"},{"Date":"07.10.2026 (Wednesday)","Shift":"Afternoon","Room No":"F-6","Subjects":"HISTORY","Students":36,"Invigilator 1":"Dr. Nandita Barui","Invigilator 2":"Dr. Tanmoy Seth"},{"Date":"07.10.2026 (Wednesday)","Shift":"Afternoon","Room No":"F-6A","Subjects":"HISTORY, PHILOSOPHY, PHYSICAL EDUCATION & SPORTS","Students":38,"Invigilator 1":"Prosenjit Ghosh","Invigilator 2":"Tusita Pal"},{"Date":"07.10.2026 (Wednesday)","Shift":"Afternoon","Room No":"F-7","Subjects":"PHYSICAL EDUCATION & SPORTS, POLITICAL SCIENCE","Students":44,"Invigilator 1":"Dr. Dipan Das","Invigilator 2":"Arpita Bhowmik"},{"Date":"07.10.2026 (Wednesday)","Shift":"Afternoon","Room No":"F-9","Subjects":"POLITICAL SCIENCE, SANSKRIT","Students":37,"Invigilator 1":"Aniruddha Chatterjee","Invigilator 2":"Dr. Atanu Datta"},{"Date":"07.10.2026 (Wednesday)","Shift":"Afternoon","Room No":"F-19","Subjects":"SOCIOLOGY","Students":37,"Invigilator 1":"Anjan Dasgupta","Invigilator 2":"Bidesh Kumar Sur Roy"},{"Date":"07.10.2026 (Wednesday)","Shift":"Afternoon","Room No":"Staff Room (Reserve)","Subjects":"-","Students":"-","Invigilator 1":"Prosenjit Chattopadhyay, Reserve","Invigilator 2":"Sambhunath Mondal, Reserve","Invigilator 3":"Susnata Bhattacharyya, Reserve"},{"Date":"07.10.2026 (Wednesday)","Shift":"Afternoon","Room No":"Asstt. Center-in-Charge & Supervisor","Subjects":"-","Students":"-","Invigilator 1":"Dr. Uday Datta, Asstt. Center-in-Charge","Invigilator 2":"Dr. Tanmoy Datta, Supervisor","Invigilator 3":"Tanmoy Dey, Supervisor"},{"Date":"12.10.2026 (Monday)","Shift":"Morning","Room No":"F-1","Subjects":"BOTANY, BUSINESS ADMINISTRATION","Students":26,"Invigilator 1":"Sarbajit Roy Chowdhury","Invigilator 2":"Debasmita Palsani"},{"Date":"12.10.2026 (Monday)","Shift":"Morning","Room No":"F-4","Subjects":"COMPUTER SCIENCE, BUSINESS ADMINISTRATION","Students":30,"Invigilator 1":"Dr. Sangram Sinha","Invigilator 2":"Titas Bhaduri"},{"Date":"12.10.2026 (Monday)","Shift":"Morning","Room No":"F-5","Subjects":"COMPUTER SCIENCE, ENVIRONMENTAL SCIENCE","Students":76,"Invigilator 1":"Dr. Sampa Ghosh","Invigilator 2":"Dr. Rituparna Ghosh","Invigilator 3":"Dr. Ananda Mukherjee","Invigilator 4":"Saswati Mukjherjee"},{"Date":"12.10.2026 (Monday)","Shift":"Morning","Room No":"F-6","Subjects":"ENVIRONMENTAL SCIENCE","Students":36,"Invigilator 1":"Prasenjit Roy","Invigilator 2":"Ashim Kumar Adhya"},{"Date":"12.10.2026 (Monday)","Shift":"Morning","Room No":"F-6A","Subjects":"ENVIRONMENTAL SCIENCE","Students":38,"Invigilator 1":"Md Bagbul Islam","Invigilator 2":"Dr. Debtanu Ghosh"},{"Date":"12.10.2026 (Monday)","Shift":"Morning","Room No":"F-7","Subjects":"ENVIRONMENTAL SCIENCE","Students":44,"Invigilator 1":"Dr. Partha Chatterjee","Invigilator 2":"Jhumpa Pal Datta"},{"Date":"12.10.2026 (Monday)","Shift":"Morning","Room No":"F-9","Subjects":"ENVIRONMENTAL SCIENCE","Students":36,"Invigilator 1":"Dr. Sandip Kumar Mondal","Invigilator 2":"Sukla Dey Sarkar"},{"Date":"12.10.2026 (Monday)","Shift":"Morning","Room No":"F-11","Subjects":"ENVIRONMENTAL SCIENCE","Students":32,"Invigilator 1":"Dr. Chandan Kumar Dan","Invigilator 2":"Tapasi Jana Das"},{"Date":"12.10.2026 (Monday)","Shift":"Morning","Room No":"F-19","Subjects":"ENVIRONMENTAL SCIENCE","Students":50,"Invigilator 1":"Dr. Chiranjib Konar","Invigilator 2":"Dr. Saikat Banerjee"},{"Date":"12.10.2026 (Monday)","Shift":"Morning","Room No":"F-23","Subjects":"ENVIRONMENTAL SCIENCE","Students":34,"Invigilator 1":"Sanchaita Ghosh","Invigilator 2":"Parimal Kumar Bera"},{"Date":"12.10.2026 (Monday)","Shift":"Morning","Room No":"F-24","Subjects":"ENVIRONMENTAL SCIENCE","Students":24,"Invigilator 1":"Dr. Ajay Bhattacharya","Invigilator 2":"Abhijit Pakhira"},{"Date":"12.10.2026 (Monday)","Shift":"Morning","Room No":"F-25","Subjects":"ENVIRONMENTAL SCIENCE, GEOGRAPHY, PSYCHOLOGY","Students":70,"Invigilator 1":"Dr. Animesh Bhattachrayya","Invigilator 2":"Biswajit Patra","Invigilator 3":"Kalpana Das"},{"Date":"12.10.2026 (Monday)","Shift":"Morning","Room No":"Staff Room (Reserve)","Subjects":"-","Students":"-","Invigilator 1":"Kathika Adak, Reserve","Invigilator 2":"Mithu Ray, Reserve","Invigilator 3":"Mousumi Pramanik Pal, Reserve","Invigilator 4":"Pradip Kr Chakraborty, Reserve","Invigilator 5":"Sampad Chowdhuri, Reserve"},{"Date":"12.10.2026 (Monday)","Shift":"Morning","Room No":"Asstt. Center-in-Charge & Supervisor","Subjects":"-","Students":"-","Invigilator 1":"Dr. Uday Datta, Asstt. Center-in-Charge","Invigilator 2":"Dr. Tanmoy Datta, Supervisor","Invigilator 3":"Tanmoy Dey, Supervisor"},{"Date":"12.10.2026 (Monday)","Shift":"Afternoon","Room No":"F-1","Subjects":"COMPUTER APPLICATIONS","Students":26,"Invigilator 1":"Dr. Mainak Kumar De","Invigilator 2":"Saswati Sarkar"},{"Date":"12.10.2026 (Monday)","Shift":"Afternoon","Room No":"F-4","Subjects":"ECONOMICS, HISTORY, POLITICAL SCIENCE, SOCIOLOGY, COMPUTER APPLICATIONS","Students":24,"Invigilator 1":"Priyanka Chowdhuri","Invigilator 2":"Dr. Rina Banerjee Ghosh"},{"Date":"12.10.2026 (Monday)","Shift":"Afternoon","Room No":"Staff Room (Reserve)","Subjects":"-","Students":"-","Invigilator 1":"Shanta Kundu, Reserve"},{"Date":"12.10.2026 (Monday)","Shift":"Afternoon","Room No":"Asstt. Center-in-Charge & Supervisor","Subjects":"-","Students":"-","Invigilator 1":"Dr. Uday Datta, Asstt. Center-in-Charge","Invigilator 2":"Dr. Tanmoy Datta, Supervisor","Invigilator 3":"Tanmoy Dey, Supervisor"},{"Date":"13.10.2026 (Tuesday)","Shift":"Morning","Room No":"F-1","Subjects":"PHYSICAL EDUCATION, UNDERSTANDING INDIA","Students":26,"Invigilator 1":"Dr. Sangram Sinha","Invigilator 2":"Mitra Sarkar"},{"Date":"13.10.2026 (Tuesday)","Shift":"Morning","Room No":"F-4","Subjects":"UNDERSTANDING INDIA","Students":30,"Invigilator 1":"Mitali Mukhopadhyay","Invigilator 2":"Bablu Tudu"},{"Date":"13.10.2026 (Tuesday)","Shift":"Morning","Room No":"F-5","Subjects":"UNDERSTANDING INDIA","Students":76,"Invigilator 1":"Dr. Sibtosh Bandyopadhyay","Invigilator 2":"Sarbajit Roy Chowdhury","Invigilator 3":"Dr. Ayan Kanti Ghosh","Invigilator 4":"Kalicharan Ghosh"},{"Date":"13.10.2026 (Tuesday)","Shift":"Morning","Room No":"F-6","Subjects":"UNDERSTANDING INDIA","Students":36,"Invigilator 1":"Sourav Kumar Modak","Invigilator 2":"Sukanya Nandy"},{"Date":"13.10.2026 (Tuesday)","Shift":"Morning","Room No":"F-6A","Subjects":"UNDERSTANDING INDIA","Students":38,"Invigilator 1":"Dr. Angira Das","Invigilator 2":"Dr. Aparajita Choudhury"},{"Date":"13.10.2026 (Tuesday)","Shift":"Morning","Room No":"F-7","Subjects":"UNDERSTANDING INDIA","Students":44,"Invigilator 1":"Dr. Sampa Ghosh","Invigilator 2":"Gourab Ghosh"},{"Date":"13.10.2026 (Tuesday)","Shift":"Morning","Room No":"F-9","Subjects":"UNDERSTANDING INDIA","Students":36,"Invigilator 1":"Dr. Rituparna Ghosh","Invigilator 2":"Arpita Bhowmik"},{"Date":"13.10.2026 (Tuesday)","Shift":"Morning","Room No":"F-10","Subjects":"UNDERSTANDING INDIA","Students":20,"Invigilator 1":"Dr. Bidhan Chandra Biswas","Invigilator 2":"Dr. Atanu Datta"},{"Date":"13.10.2026 (Tuesday)","Shift":"Morning","Room No":"F-11","Subjects":"UNDERSTANDING INDIA","Students":32,"Invigilator 1":"Dr. Partha Chatterjee","Invigilator 2":"Bidesh Kumar Sur Roy"},{"Date":"13.10.2026 (Tuesday)","Shift":"Morning","Room No":"F-19","Subjects":"UNDERSTANDING INDIA","Students":50,"Invigilator 1":"Sanchaita Ghosh","Invigilator 2":"Prosenjit Chattopadhyay"},{"Date":"13.10.2026 (Tuesday)","Shift":"Morning","Room No":"F-20","Subjects":"UNDERSTANDING INDIA","Students":20,"Invigilator 1":"Anjan Dasgupta","Invigilator 2":"Sambhunath Mondal"},{"Date":"13.10.2026 (Tuesday)","Shift":"Morning","Room No":"F-23","Subjects":"UNDERSTANDING INDIA","Students":34,"Invigilator 1":"Dr. Animesh Bhattachrayya","Invigilator 2":"Susnata Bhattacharyya"},{"Date":"13.10.2026 (Tuesday)","Shift":"Morning","Room No":"F-24","Subjects":"UNDERSTANDING INDIA","Students":24,"Invigilator 1":"Saswati Mukjherjee","Invigilator 2":"Titas Bhaduri"},{"Date":"13.10.2026 (Tuesday)","Shift":"Morning","Room No":"F-25","Subjects":"UNDERSTANDING INDIA","Students":91,"Invigilator 1":"Parimal Kumar Bera","Invigilator 2":"Jhumpa Pal Datta","Invigilator 3":"Sukla Dey Sarkar","Invigilator 4":"Tapasi Jana Das"},{"Date":"13.10.2026 (Tuesday)","Shift":"Morning","Room No":"Staff Room (Reserve)","Subjects":"-","Students":"-","Invigilator 1":"Ashim Kumar Adhya, Reserve","Invigilator 2":"Abhijit Pakhira, Reserve","Invigilator 3":"Mithu Ray, Reserve","Invigilator 4":"Pradip Kr Chakraborty, Reserve"},{"Date":"13.10.2026 (Tuesday)","Shift":"Morning","Room No":"Asstt. Center-in-Charge & Supervisor","Subjects":"-","Students":"-","Invigilator 1":"Dr. Uday Datta, Asstt. Center-in-Charge","Invigilator 2":"Dr. Tanmoy Datta, Supervisor","Invigilator 3":"Tanmoy Dey, Supervisor"},{"Date":"13.10.2026 (Tuesday)","Shift":"Afternoon","Room No":"F-1","Subjects":"ENGLISH","Students":26,"Invigilator 1":"Prothoma Saha","Invigilator 2":"Sanjoy Kumar"},{"Date":"13.10.2026 (Tuesday)","Shift":"Afternoon","Room No":"F-4","Subjects":"ENGLISH","Students":30,"Invigilator 1":"Dr. Rajib Majumder","Invigilator 2":"Dr. Dulal Kumbhakar"},{"Date":"13.10.2026 (Tuesday)","Shift":"Afternoon","Room No":"F-5","Subjects":"ENGLISH","Students":76,"Invigilator 1":"Chayan Das","Invigilator 2":"Anal Mondal","Invigilator 3":"Dr. Koushik Chakraborty","Invigilator 4":"Sayan Dey"},{"Date":"13.10.2026 (Tuesday)","Shift":"Afternoon","Room No":"F-6","Subjects":"ENGLISH","Students":36,"Invigilator 1":"Dr. Abid Hasan","Invigilator 2":"Indrajit Chatterjee"},{"Date":"13.10.2026 (Tuesday)","Shift":"Afternoon","Room No":"F-6A","Subjects":"ENGLISH","Students":38,"Invigilator 1":"Pramila Soren","Invigilator 2":"Madhumanti Sinha"},{"Date":"13.10.2026 (Tuesday)","Shift":"Afternoon","Room No":"F-7","Subjects":"ENGLISH","Students":44,"Invigilator 1":"Soma Mitra","Invigilator 2":"Madhupa Samanta"},{"Date":"13.10.2026 (Tuesday)","Shift":"Afternoon","Room No":"F-9","Subjects":"ENGLISH","Students":36,"Invigilator 1":"Priyanka Chowdhuri","Invigilator 2":"Priya Patra"},{"Date":"13.10.2026 (Tuesday)","Shift":"Afternoon","Room No":"F-10","Subjects":"ENGLISH","Students":20,"Invigilator 1":"Dr. Mainak Kumar De","Invigilator 2":"Somjit Banerjee"},{"Date":"13.10.2026 (Tuesday)","Shift":"Afternoon","Room No":"F-11","Subjects":"ENGLISH","Students":32,"Invigilator 1":"Dr. Nandita Barui","Invigilator 2":"Souvik Chattopadhyay"},{"Date":"13.10.2026 (Tuesday)","Shift":"Afternoon","Room No":"F-19","Subjects":"ENGLISH","Students":50,"Invigilator 1":"Prosenjit Ghosh","Invigilator 2":"Sramana Chatterjee"},{"Date":"13.10.2026 (Tuesday)","Shift":"Afternoon","Room No":"F-20","Subjects":"ENGLISH","Students":20,"Invigilator 1":"Dr. Dipan Das","Invigilator 2":"Subhadeep Dutta"},{"Date":"13.10.2026 (Tuesday)","Shift":"Afternoon","Room No":"F-23","Subjects":"ENGLISH","Students":34,"Invigilator 1":"Aniruddha Chatterjee","Invigilator 2":"Dr. Tanmoy Seth"},{"Date":"13.10.2026 (Tuesday)","Shift":"Afternoon","Room No":"F-24","Subjects":"ENGLISH","Students":24,"Invigilator 1":"Md Bagbul Islam","Invigilator 2":"Tusita Pal"},{"Date":"13.10.2026 (Tuesday)","Shift":"Afternoon","Room No":"F-25","Subjects":"ENGLISH","Students":96,"Invigilator 1":"Dr. Ajay Bhattacharya","Invigilator 2":"Dr. Debtanu Ghosh","Invigilator 3":"Dr. Rina Banerjee Ghosh","Invigilator 4":"Saswati Sarkar"},{"Date":"13.10.2026 (Tuesday)","Shift":"Afternoon","Room No":"Staff Room (Reserve)","Subjects":"-","Students":"-","Invigilator 1":"Biswajit Patra, Reserve","Invigilator 2":"Shanta Kundu, Reserve","Invigilator 3":"Dr. Saikat Banerjee, Reserve"},{"Date":"13.10.2026 (Tuesday)","Shift":"Afternoon","Room No":"Asstt. Center-in-Charge & Supervisor","Subjects":"-","Students":"-","Invigilator 1":"Dr. Uday Datta, Asstt. Center-in-Charge","Invigilator 2":"Dr. Tanmoy Datta, Supervisor","Invigilator 3":"Tanmoy Dey, Supervisor"},{"Date":"14.10.2026 (Wednesday)","Shift":"Morning","Room No":"F-1","Subjects":"BENGALI","Students":26,"Invigilator 1":"Pramila Majhi","Invigilator 2":"Binayak Roy"},{"Date":"14.10.2026 (Wednesday)","Shift":"Morning","Room No":"F-4","Subjects":"BENGALI","Students":30,"Invigilator 1":"Dr. Sandip Kumar Mondal","Invigilator 2":"Lipika Paul"},{"Date":"14.10.2026 (Wednesday)","Shift":"Morning","Room No":"F-5","Subjects":"BENGALI, BOTANY, CHEMISTRY, EDUCATION","Students":76,"Invigilator 1":"Mitali Mukhopadhyay","Invigilator 2":"Dr. Sangram Sinha","Invigilator 3":"Sk Abdul Rofik","Invigilator 4":"Dr. Suvajit Samanta"},{"Date":"14.10.2026 (Wednesday)","Shift":"Morning","Room No":"F-6A","Subjects":"EDUCATION","Students":38,"Invigilator 1":"Soma Mitra","Invigilator 2":"Sugata Adak"},{"Date":"14.10.2026 (Wednesday)","Shift":"Morning","Room No":"F-6","Subjects":"EDUCATION, ENGLISH","Students":36,"Invigilator 1":"Dr. Chandan Kumar Dan","Invigilator 2":"Suman Maji"},{"Date":"14.10.2026 (Wednesday)","Shift":"Morning","Room No":"F-7","Subjects":"ENGLISH, GEOGRAPHY, MATHEMATICS","Students":21,"Invigilator 1":"Chayan Das","Invigilator 2":"Dr. Ananda Mukherjee"},{"Date":"14.10.2026 (Wednesday)","Shift":"Morning","Room No":"F-19","Subjects":"NUTRITION, PHYSICS, ZOOLOGY","Students":43,"Invigilator 1":"Dr. Sibtosh Bandyopadhyay","Invigilator 2":"Mitra Sarkar"},{"Date":"14.10.2026 (Wednesday)","Shift":"Morning","Room No":"Staff Room (Reserve)","Subjects":"-","Students":"-","Invigilator 1":"Kalpana Das, Reserve","Invigilator 2":"Kathika Adak, Reserve","Invigilator 3":"Bablu Tudu, Reserve"},{"Date":"14.10.2026 (Wednesday)","Shift":"Morning","Room No":"Asstt. Center-in-Charge & Supervisor","Subjects":"-","Students":"-","Invigilator 1":"Dr. Uday Datta, Asstt. Center-in-Charge","Invigilator 2":"Dr. Tanmoy Datta, Supervisor","Invigilator 3":"Tanmoy Dey, Supervisor"},{"Date":"14.10.2026 (Wednesday)","Shift":"Afternoon","Room No":"F-1","Subjects":"ACCOUNTING & MANAGEMENT","Students":26,"Invigilator 1":"Pramila Soren","Invigilator 2":"Mousumi Pramanik Pal"},{"Date":"14.10.2026 (Wednesday)","Shift":"Afternoon","Room No":"F-4","Subjects":"ACCOUNTING & MANAGEMENT","Students":30,"Invigilator 1":"Dr. Chiranjib Konar","Invigilator 2":"Sampad Chowdhuri"},{"Date":"14.10.2026 (Wednesday)","Shift":"Afternoon","Room No":"F-5","Subjects":"ACCOUNTING & MANAGEMENT, HISTORY, PHILOSOPHY, POLITICAL SCIENCE","Students":76,"Invigilator 1":"Dr. Rajib Majumder","Invigilator 2":"Prothoma Saha","Invigilator 3":"Sanjoy Kumar","Invigilator 4":"Sukanya Nandy"},{"Date":"14.10.2026 (Wednesday)","Shift":"Afternoon","Room No":"F-6A","Subjects":"POLITICAL SCIENCE, SANSKRIT","Students":38,"Invigilator 1":"Anal Mondal","Invigilator 2":"Dr. Dulal Kumbhakar"},{"Date":"14.10.2026 (Wednesday)","Shift":"Afternoon","Room No":"F-6","Subjects":"SANSKRIT","Students":31,"Invigilator 1":"Dr. Angira Das","Invigilator 2":"Dr. Koushik Chakraborty"},{"Date":"14.10.2026 (Wednesday)","Shift":"Afternoon","Room No":"Staff Room (Reserve)","Subjects":"-","Students":"-","Invigilator 1":"Dr. Ayan Kanti Ghosh, Reserve","Invigilator 2":"Sayan Dey, Reserve"},{"Date":"14.10.2026 (Wednesday)","Shift":"Afternoon","Room No":"Asstt. Center-in-Charge & Supervisor","Subjects":"-","Students":"-","Invigilator 1":"Dr. Uday Datta, Asstt. Center-in-Charge","Invigilator 2":"Dr. Tanmoy Datta, Supervisor","Invigilator 3":"Tanmoy Dey, Supervisor"}];
+            let p5_facultyListRaw = [{"Sl. No.":1,"Name of Teacher":"Dr. Ajay Bhattacharya","Short Name":"AB(Math)","P.Day":"Fri"},{"Sl. No.":2,"Name of Teacher":"Mitali Mukhopadhyay","Short Name":"MM(Phil)","P.Day":"Mon"},{"Sl. No.":3,"Name of Teacher":"Dr. Bidhan Chandra Biswas","Short Name":"BCB(Beng)","P.Day":"Thu"},{"Sl. No.":4,"Name of Teacher":"Dr. Uday Datta","Short Name":"UD(Com)","P.Day":"Tue"},{"Sl. No.":5,"Name of Teacher":"Dr. Partha Chatterjee","Short Name":"PC(Phys)","P.Day":"Wed"},{"Sl. No.":6,"Name of Teacher":"Dr. Kakali Sharma","Short Name":"KS(Chem)","P.Day":"Thu"},{"Sl. No.":7,"Name of Teacher":"Dr. Sibtosh Bandyopadhyay","Short Name":"STB(Pol)","P.Day":"Thu"},{"Sl. No.":8,"Name of Teacher":"Sanchaita Ghosh","Short Name":"SG(Eng)","P.Day":"Fri"},{"Sl. No.":9,"Name of Teacher":"Anjan Dasgupta","Short Name":"ADG(Com)","P.Day":"Mon"},{"Sl. No.":10,"Name of Teacher":"Priyanka Chowdhuri","Short Name":"PC(Beng)","P.Day":"Wed"},{"Sl. No.":11,"Name of Teacher":"Sourav Kumar Modak","Short Name":"SKM(Pol)","P.Day":"Sat"},{"Sl. No.":12,"Name of Teacher":"Dr. Sandip Kumar Mondal","Short Name":"SKM(Phy)","P.Day":"Tue"},{"Sl. No.":13,"Name of Teacher":"Pramila Majhi","Short Name":"PM(Edu)","P.Day":"Sat"},{"Sl. No.":14,"Name of Teacher":"Dr. Sangram Sinha","Short Name":"SS(Bot)","P.Day":"Thu"},{"Sl. No.":15,"Name of Teacher":"Dr. Rajib Majumder","Short Name":"RM(Zoo)","P.Day":"Mon"},{"Sl. No.":16,"Name of Teacher":"Sarbajit Roy Chowdhury","Short Name":"SRC(Pol)","P.Day":"Wed"},{"Sl. No.":17,"Name of Teacher":"Dr. Mainak Kumar De","Short Name":"MKD(Geo)","P.Day":"Wed"},{"Sl. No.":18,"Name of Teacher":"Dr. Animesh Bhattachrayya","Short Name":"AB(Lib)","P.Day":""},{"Sl. No.":19,"Name of Teacher":"Soma Mitra","Short Name":"SM(Lib)","P.Day":""},{"Sl. No.":20,"Name of Teacher":"Md Bagbul Islam","Short Name":"MBI(Eng)","P.Day":"Wed"},{"Sl. No.":21,"Name of Teacher":"Dr. Tanmoy Datta","Short Name":"TD(Elec)","P.Day":"Mon"},{"Sl. No.":22,"Name of Teacher":"Prasenjit Roy","Short Name":"PR(Phil)","P.Day":"Tue"},{"Sl. No.":23,"Name of Teacher":"Tanmoy Dey","Short Name":"TD(Comp)","P.Day":"Mon"},{"Sl. No.":24,"Name of Teacher":"Dr. Angira Das","Short Name":"AD(Nut)","P.Day":"Sat"},{"Sl. No.":25,"Name of Teacher":"Dr. Chandan Kumar Dan","Short Name":"CKD(Pol)","P.Day":"Tue"},{"Sl. No.":26,"Name of Teacher":"Chayan Das","Short Name":"CD(Edu)","P.Day":"Mon"},{"Sl. No.":27,"Name of Teacher":"Dr. Nandita Barui","Short Name":"NB(Sans)","P.Day":"Mon"},{"Sl. No.":28,"Name of Teacher":"Biswajit Patra","Short Name":"BP(Sans)","P.Day":"Thu"},{"Sl. No.":29,"Name of Teacher":"Dr. Chiranjib Konar","Short Name":"CK(Hist)","P.Day":"Tue"},{"Sl. No.":30,"Name of Teacher":"Dr. Sampa Ghosh","Short Name":"SG(Hist)","P.Day":"Wed"},{"Sl. No.":31,"Name of Teacher":"Prosenjit Ghosh","Short Name":"PG(Hist)","P.Day":"Mon"},{"Sl. No.":32,"Name of Teacher":"Prothoma Saha","Short Name":"PS(Eng)","P.Day":"Mon"},{"Sl. No.":33,"Name of Teacher":"Dr. Dipan Das","Short Name":"DD(Beng)","P.Day":"Mon"},{"Sl. No.":34,"Name of Teacher":"Aniruddha Chatterjee","Short Name":"AC(Geo)","P.Day":"Mon"},{"Sl. No.":35,"Name of Teacher":"Anal Mondal","Short Name":"AM(Geo)","P.Day":"Thu"},{"Sl. No.":36,"Name of Teacher":"Pramila Soren","Short Name":"Ps(Comp)","P.Day":"Fri"},{"Sl. No.":37,"Name of Teacher":"Dr. Abid Hasan","Short Name":"AH(Beng)","P.Day":"Wed"},{"Sl. No.":38,"Name of Teacher":"Dr. Rituparna Ghosh","Short Name":"RG(Math)","P.Day":"Wed"},{"Sl. No.":39,"Name of Teacher":"Parimal Kumar Bera","Short Name":"PKB(Com)","P.Day":"Wed"},{"Sl. No.":40,"Name of Teacher":"Ashim Kumar Adhya","Short Name":"AA(Com)","P.Day":"Sat"},{"Sl. No.":41,"Name of Teacher":"Dr. Koushik Chakraborty","Short Name":"KC(Com)","P.Day":"Thu"},{"Sl. No.":42,"Name of Teacher":"Abhijit Pakhira","Short Name":"AP(Zoo)","P.Day":"Wed,Thu"},{"Sl. No.":43,"Name of Teacher":"Dr. Ananda Mukherjee","Short Name":"AM(Sans)","P.Day":"Tue,Fri"},{"Sl. No.":44,"Name of Teacher":"Arpita Bhowmik","Short Name":"AB(Edu)","P.Day":"Thu,Sat"},{"Sl. No.":45,"Name of Teacher":"Dr. Atanu Datta","Short Name":"AD(Comp)","P.Day":"Fri,Sat"},{"Sl. No.":46,"Name of Teacher":"Dr. Ayan Kanti Ghosh","Short Name":"AKG(Eng)","P.Day":"Mon,Fri"},{"Sl. No.":47,"Name of Teacher":"Bidesh Kumar Sur Roy","Short Name":"BKSR(Eng)","P.Day":"Thu,Sat"},{"Sl. No.":48,"Name of Teacher":"Binayak Roy","Short Name":"BR(Nut)","P.Day":"Mon,Tue"},{"Sl. No.":49,"Name of Teacher":"Dr. Debtanu Ghosh","Short Name":"DG(Phys)","P.Day":"Wed,Sat"},{"Sl. No.":50,"Name of Teacher":"Dr. Rina Banerjee Ghosh","Short Name":"RB(Phil)","P.Day":"Wed,Sat"},{"Sl. No.":51,"Name of Teacher":"Indrajit Chatterjee","Short Name":"IC(Comp)","P.Day":"Thu,Sat"},{"Sl. No.":52,"Name of Teacher":"Jhumpa Pal Datta","Short Name":"JD(Beng)","P.Day":"Thu,Sat"},{"Sl. No.":53,"Name of Teacher":"Kalpana Das","Short Name":"KD(Sans)","P.Day":"Tue,Thu"},{"Sl. No.":54,"Name of Teacher":"Kathika Adak","Short Name":"KA(Geo)","P.Day":"Tue,Sat"},{"Sl. No.":55,"Name of Teacher":"Mithu Ray","Short Name":"MR(Com)","P.Day":"Wed,Sat"},{"Sl. No.":56,"Name of Teacher":"Mousumi Pramanik Pal","Short Name":"MP(Phil)","P.Day":"Tue,Fri"},{"Sl. No.":57,"Name of Teacher":"Pradip Kr Chakraborty","Short Name":"PKC(Sans)","P.Day":"Wed,Sat"},{"Sl. No.":58,"Name of Teacher":"Prosenjit Chattopadhyay","Short Name":"PJC(Sans)","P.Day":"Fri,Sat"},{"Sl. No.":59,"Name of Teacher":"Sambhunath Mondal","Short Name":"SNM(Edu)","P.Day":"Fri,Sat"},{"Sl. No.":60,"Name of Teacher":"Sampad Chowdhuri","Short Name":"SC(Com)","P.Day":"Tue,Sat"},{"Sl. No.":61,"Name of Teacher":"Sanjoy Kumar","Short Name":"SK(Comp)","P.Day":"Mon,Thu"},{"Sl. No.":62,"Name of Teacher":"Saswati Mukjherjee","Short Name":"SM(Hist)","P.Day":"Wed,Fri"},{"Sl. No.":63,"Name of Teacher":"Saswati Sarkar","Short Name":"SS(Phil)","P.Day":"Thu,Sat"},{"Sl. No.":64,"Name of Teacher":"Shanta Kundu","Short Name":"SK(Phil)","P.Day":"Thu,Sat"},{"Sl. No.":65,"Name of Teacher":"Sk Abdul Rofik","Short Name":"SAR(Phys)","P.Day":"Tue,Fri"},{"Sl. No.":66,"Name of Teacher":"Sugata Adak","Short Name":"SA(Comp)","P.Day":"Tue,Thu"},{"Sl. No.":67,"Name of Teacher":"Sukanya Nandy","Short Name":"SN(Hist)","P.Day":"Mon,Thu"},{"Sl. No.":68,"Name of Teacher":"Sukla Dey Sarkar","Short Name":"SDS(Edu)","P.Day":"Fri,Sat"},{"Sl. No.":69,"Name of Teacher":"Suman Maji","Short Name":"SM(Sans)","P.Day":"Tue,Thu"},{"Sl. No.":70,"Name of Teacher":"Susnata Bhattacharyya","Short Name":"SB(Eng)","P.Day":"Thu,Sat"},{"Sl. No.":71,"Name of Teacher":"Dr. Suvajit Samanta","Short Name":"SS(Sans)","P.Day":"Mon,Tue"},{"Sl. No.":72,"Name of Teacher":"Tapasi Jana Das","Short Name":"TJD(Pol)","P.Day":"Fri,Sat"},{"Sl. No.":73,"Name of Teacher":"Titas Bhaduri","Short Name":"TB(Nut)","P.Day":"Thu,Sat"},{"Sl. No.":74,"Name of Teacher":"Mitra Sarkar","Short Name":"MS(Pol)","P.Day":"Mon,Thu"},{"Sl. No.":75,"Name of Teacher":"Bablu Tudu","Short Name":"BT(Sant)","P.Day":"Mon,Thu"},{"Sl. No.":76,"Name of Teacher":"Debasmita Palsani","Short Name":"DP(Nut)","P.Day":"Tue,Wed"},{"Sl. No.":77,"Name of Teacher":"Dr. Aparajita Choudhury","Short Name":"AC(Zoo)","P.Day":"Mon,Sat"},{"Sl. No.":78,"Name of Teacher":"Dr. Dulal Kumbhakar","Short Name":"DK(BCA)","P.Day":"Mon,Thu"},{"Sl. No.":79,"Name of Teacher":"Gourab Ghosh","Short Name":"GG(Chem)","P.Day":"Mon,Fri"},{"Sl. No.":80,"Name of Teacher":"Kalicharan Ghosh","Short Name":"KCG(Phy)","P.Day":"Fri,Sat"},{"Sl. No.":81,"Name of Teacher":"Lipika Paul","Short Name":"LP(Bot)","P.Day":"Mon,Tue"},{"Sl. No.":82,"Name of Teacher":"Madhumanti Sinha","Short Name":"MS(Bot)","P.Day":"Fri,Sat"},{"Sl. No.":83,"Name of Teacher":"Madhupa Samanta","Short Name":"MS(Math)","P.Day":"Fri,Sat"},{"Sl. No.":84,"Name of Teacher":"Piyali Paramanick","Short Name":"PP(Math)","P.Day":"Mon,Sat"},{"Sl. No.":85,"Name of Teacher":"Priya Patra","Short Name":"PP(Beng)","P.Day":"Thu,Fri"},{"Sl. No.":86,"Name of Teacher":"Dr. Saikat Banerjee","Short Name":"SB(BCA)","P.Day":"Wed,Fri"},{"Sl. No.":87,"Name of Teacher":"Sayan Dey","Short Name":"SD(Edu)","P.Day":"Mon,Thu"},{"Sl. No.":88,"Name of Teacher":"Somjit Banerjee","Short Name":"SB(Zoo)","P.Day":"Fri,Sat"},{"Sl. No.":89,"Name of Teacher":"Souvik Chattopadhyay","Short Name":"SC(Beng)","P.Day":"Fri,Sat"},{"Sl. No.":90,"Name of Teacher":"Sramana Chatterjee","Short Name":"SC(Math)","P.Day":"Fri,Sat"},{"Sl. No.":91,"Name of Teacher":"Subhadeep Dutta","Short Name":"SD(Nut)","P.Day":"Fri,Sat"},{"Sl. No.":92,"Name of Teacher":"Dr. Tanmoy Seth","Short Name":"TS(Math)","P.Day":"Thu,Sat"},{"Sl. No.":93,"Name of Teacher":"Tusita Pal","Short Name":"TP(Zoo)","P.Day":"Thu,Fri"}];
+            let p5_state = /*STATE_START*/{"06.10.2026 (Tuesday) - Morning":{"rooms":{"F-1":{"status":"Pending","invigs":[{"name":"Dr. Sampa Ghosh","sl":30,"role":"Invigilation","status":"Present"},{"name":"Saswati Mukjherjee","sl":62,"role":"Invigilation","status":"Present"}]},"F-4":{"status":"Pending","invigs":[{"name":"Dr. Rituparna Ghosh","sl":38,"role":"Invigilation","status":"Present"},{"name":"Mitra Sarkar","sl":74,"role":"Invigilation","status":"Present"}]},"F-5":{"status":"Pending","invigs":[{"name":"Dr. Bidhan Chandra Biswas","sl":3,"role":"Invigilation","status":"Present"},{"name":"Md Bagbul Islam","sl":20,"role":"Invigilation","status":"Present"},{"name":"Ashim Kumar Adhya","sl":40,"role":"Invigilation","status":"Present"},{"name":"Bablu Tudu","sl":75,"role":"Invigilation","status":"Present"}]},"F-6":{"status":"Pending","invigs":[{"name":"Dr. Partha Chatterjee","sl":5,"role":"Invigilation","status":"Present"},{"name":"Dr. Debtanu Ghosh","sl":49,"role":"Invigilation","status":"Present"}]},"F-6A":{"status":"Pending","invigs":[{"name":"Anjan Dasgupta","sl":9,"role":"Invigilation","status":"Present"},{"name":"Jhumpa Pal Datta","sl":52,"role":"Invigilation","status":"Present"}]},"F-7":{"status":"Pending","invigs":[{"name":"Dr. Ajay Bhattacharya","sl":1,"role":"Invigilation","status":"Present"},{"name":"Sukla Dey Sarkar","sl":68,"role":"Invigilation","status":"Present"}]},"F-9":{"status":"Pending","invigs":[{"name":"Dr. Animesh Bhattachrayya","sl":18,"role":"Invigilation","status":"Present"},{"name":"Tapasi Jana Das","sl":72,"role":"Invigilation","status":"Present"}]},"F-11":{"status":"Pending","invigs":[{"name":"Biswajit Patra","sl":28,"role":"Invigilation","status":"Present"},{"name":"Dr. Saikat Banerjee","sl":86,"role":"Invigilation","status":"Present"}]},"F-19":{"status":"Pending","invigs":[{"name":"Anal Mondal","sl":35,"role":"Invigilation","status":"Present"},{"name":"Parimal Kumar Bera","sl":39,"role":"Invigilation","status":"Present"}]},"F-23":{"status":"Pending","invigs":[{"name":"Dr. Sibtosh Bandyopadhyay","sl":7,"role":"Invigilation","status":"Present"},{"name":"Abhijit Pakhira","sl":42,"role":"Invigilation","status":"Present"}]},"Staff Room (Reserve)":{"status":"Pending","invigs":[{"name":"Mithu Ray","sl":55,"role":"Reserve","status":"Present"},{"name":"Pradip Kr Chakraborty","sl":57,"role":"Reserve","status":"Present"},{"name":"Sanjoy Kumar","sl":61,"role":"Reserve","status":"Present"},{"name":"Kalicharan Ghosh","sl":80,"role":"Reserve","status":"Present"}]},"Asstt. Center-in-Charge & Supervisor":{"status":"Pending","invigs":[{"name":"Dr. Uday Datta","sl":4,"role":"Asstt. Center-in-Charge","status":"Present"},{"name":"Dr. Tanmoy Datta","sl":21,"role":"Supervisor","status":"Present"},{"name":"Tanmoy Dey","sl":23,"role":"Supervisor","status":"Present"}]}}},"06.10.2026 (Tuesday) - Afternoon":{"rooms":{"F-1":{"status":"Pending","invigs":[{"name":"Priyanka Chowdhuri","sl":10,"role":"Invigilation","status":"Present"},{"name":"Dr. Rina Banerjee Ghosh","sl":50,"role":"Invigilation","status":"Present"}]},"F-4":{"status":"Pending","invigs":[{"name":"Dr. Mainak Kumar De","sl":17,"role":"Invigilation","status":"Present"},{"name":"Saswati Sarkar","sl":63,"role":"Invigilation","status":"Present"}]},"F-5":{"status":"Pending","invigs":[{"name":"Dr. Nandita Barui","sl":27,"role":"Invigilation","status":"Present"},{"name":"Dr. Abid Hasan","sl":37,"role":"Invigilation","status":"Present"},{"name":"Shanta Kundu","sl":64,"role":"Invigilation","status":"Present"},{"name":"Dr. Dulal Kumbhakar","sl":78,"role":"Invigilation","status":"Present"}]},"F-6":{"status":"Pending","invigs":[{"name":"Prosenjit Ghosh","sl":31,"role":"Invigilation","status":"Present"},{"name":"Sayan Dey","sl":87,"role":"Invigilation","status":"Present"}]},"F-6A":{"status":"Pending","invigs":[{"name":"Dr. Dipan Das","sl":33,"role":"Invigilation","status":"Present"},{"name":"Dr. Koushik Chakraborty","sl":41,"role":"Invigilation","status":"Present"}]},"F-7":{"status":"Pending","invigs":[{"name":"Aniruddha Chatterjee","sl":34,"role":"Invigilation","status":"Present"},{"name":"Dr. Ayan Kanti Ghosh","sl":46,"role":"Invigilation","status":"Present"}]},"Staff Room (Reserve)":{"status":"Pending","invigs":[{"name":"Sukanya Nandy","sl":67,"role":"Reserve","status":"Present"},{"name":"Dr. Aparajita Choudhury","sl":77,"role":"Reserve","status":"Present"},{"name":"Gourab Ghosh","sl":79,"role":"Reserve","status":"Present"}]},"Asstt. Center-in-Charge & Supervisor":{"status":"Pending","invigs":[{"name":"Dr. Uday Datta","sl":4,"role":"Asstt. Center-in-Charge","status":"Present"},{"name":"Dr. Tanmoy Datta","sl":21,"role":"Supervisor","status":"Present"},{"name":"Tanmoy Dey","sl":23,"role":"Supervisor","status":"Present"}]}}},"07.10.2026 (Wednesday) - Morning":{"rooms":{"F-1":{"status":"Pending","invigs":[{"name":"Mitali Mukhopadhyay","sl":2,"role":"Invigilation","status":"Present"},{"name":"Dr. Ananda Mukherjee","sl":43,"role":"Invigilation","status":"Present"}]},"F-4":{"status":"Pending","invigs":[{"name":"Prasenjit Roy","sl":22,"role":"Invigilation","status":"Present"},{"name":"Dr. Suvajit Samanta","sl":71,"role":"Invigilation","status":"Present"}]},"F-5":{"status":"Pending","invigs":[{"name":"Dr. Sandip Kumar Mondal","sl":12,"role":"Invigilation","status":"Present"},{"name":"Dr. Chandan Kumar Dan","sl":25,"role":"Invigilation","status":"Present"},{"name":"Kalpana Das","sl":53,"role":"Invigilation","status":"Present"},{"name":"Lipika Paul","sl":81,"role":"Invigilation","status":"Present"}]},"F-6":{"status":"Pending","invigs":[{"name":"Chayan Das","sl":26,"role":"Invigilation","status":"Present"},{"name":"Kathika Adak","sl":54,"role":"Invigilation","status":"Present"}]},"F-6A":{"status":"Pending","invigs":[{"name":"Dr. Chiranjib Konar","sl":29,"role":"Invigilation","status":"Present"},{"name":"Mousumi Pramanik Pal","sl":56,"role":"Invigilation","status":"Present"}]},"F-7":{"status":"Pending","invigs":[{"name":"Sanchaita Ghosh","sl":8,"role":"Invigilation","status":"Present"},{"name":"Sampad Chowdhuri","sl":60,"role":"Invigilation","status":"Present"}]},"F-9":{"status":"Pending","invigs":[{"name":"Sourav Kumar Modak","sl":11,"role":"Invigilation","status":"Present"},{"name":"Sk Abdul Rofik","sl":65,"role":"Invigilation","status":"Present"}]},"F-19":{"status":"Pending","invigs":[{"name":"Dr. Angira Das","sl":24,"role":"Invigilation","status":"Present"},{"name":"Sugata Adak","sl":66,"role":"Invigilation","status":"Present"}]},"F-23":{"status":"Pending","invigs":[{"name":"Dr. Bidhan Chandra Biswas","sl":3,"role":"Invigilation","status":"Present"},{"name":"Suman Maji","sl":69,"role":"Invigilation","status":"Present"}]},"Staff Room (Reserve)":{"status":"Pending","invigs":[{"name":"Indrajit Chatterjee","sl":51,"role":"Reserve","status":"Present"},{"name":"Madhumanti Sinha","sl":82,"role":"Reserve","status":"Present"},{"name":"Madhupa Samanta","sl":83,"role":"Reserve","status":"Present"},{"name":"Priya Patra","sl":85,"role":"Reserve","status":"Present"}]},"Asstt. Center-in-Charge & Supervisor":{"status":"Pending","invigs":[{"name":"Dr. Uday Datta","sl":4,"role":"Asstt. Center-in-Charge","status":"Present"},{"name":"Dr. Tanmoy Datta","sl":21,"role":"Supervisor","status":"Present"},{"name":"Tanmoy Dey","sl":23,"role":"Supervisor","status":"Present"}]}}},"07.10.2026 (Wednesday) - Afternoon":{"rooms":{"F-1":{"status":"Pending","invigs":[{"name":"Dr. Rajib Majumder","sl":15,"role":"Invigilation","status":"Present"},{"name":"Somjit Banerjee","sl":88,"role":"Invigilation","status":"Present"}]},"F-4":{"status":"Pending","invigs":[{"name":"Prothoma Saha","sl":32,"role":"Invigilation","status":"Present"},{"name":"Souvik Chattopadhyay","sl":89,"role":"Invigilation","status":"Present"}]},"F-5":{"status":"Pending","invigs":[{"name":"Soma Mitra","sl":19,"role":"Invigilation","status":"Present"},{"name":"Pramila Soren","sl":36,"role":"Invigilation","status":"Present"},{"name":"Sramana Chatterjee","sl":90,"role":"Invigilation","status":"Present"},{"name":"Subhadeep Dutta","sl":91,"role":"Invigilation","status":"Present"}]},"F-6":{"status":"Pending","invigs":[{"name":"Dr. Nandita Barui","sl":27,"role":"Invigilation","status":"Present"},{"name":"Dr. Tanmoy Seth","sl":92,"role":"Invigilation","status":"Present"}]},"F-6A":{"status":"Pending","invigs":[{"name":"Prosenjit Ghosh","sl":31,"role":"Invigilation","status":"Present"},{"name":"Tusita Pal","sl":93,"role":"Invigilation","status":"Present"}]},"F-7":{"status":"Pending","invigs":[{"name":"Dr. Dipan Das","sl":33,"role":"Invigilation","status":"Present"},{"name":"Arpita Bhowmik","sl":44,"role":"Invigilation","status":"Present"}]},"F-9":{"status":"Pending","invigs":[{"name":"Aniruddha Chatterjee","sl":34,"role":"Invigilation","status":"Present"},{"name":"Dr. Atanu Datta","sl":45,"role":"Invigilation","status":"Present"}]},"F-19":{"status":"Pending","invigs":[{"name":"Anjan Dasgupta","sl":9,"role":"Invigilation","status":"Present"},{"name":"Bidesh Kumar Sur Roy","sl":47,"role":"Invigilation","status":"Present"}]},"Staff Room (Reserve)":{"status":"Pending","invigs":[{"name":"Prosenjit Chattopadhyay","sl":58,"role":"Reserve","status":"Present"},{"name":"Sambhunath Mondal","sl":59,"role":"Reserve","status":"Present"},{"name":"Susnata Bhattacharyya","sl":70,"role":"Reserve","status":"Present"}]},"Asstt. Center-in-Charge & Supervisor":{"status":"Pending","invigs":[{"name":"Dr. Uday Datta","sl":4,"role":"Asstt. Center-in-Charge","status":"Present"},{"name":"Dr. Tanmoy Datta","sl":21,"role":"Supervisor","status":"Present"},{"name":"Tanmoy Dey","sl":23,"role":"Supervisor","status":"Present"}]}}},"12.10.2026 (Monday) - Morning":{"rooms":{"F-1":{"status":"Pending","invigs":[{"name":"Sarbajit Roy Chowdhury","sl":16,"role":"Invigilation","status":"Present"},{"name":"Debasmita Palsani","sl":76,"role":"Invigilation","status":"Present"}]},"F-4":{"status":"Pending","invigs":[{"name":"Dr. Sangram Sinha","sl":14,"role":"Invigilation","status":"Present"},{"name":"Titas Bhaduri","sl":73,"role":"Invigilation","status":"Present"}]},"F-5":{"status":"Pending","invigs":[{"name":"Dr. Sampa Ghosh","sl":30,"role":"Invigilation","status":"Present"},{"name":"Dr. Rituparna Ghosh","sl":38,"role":"Invigilation","status":"Present"},{"name":"Dr. Ananda Mukherjee","sl":43,"role":"Invigilation","status":"Present"},{"name":"Saswati Mukjherjee","sl":62,"role":"Invigilation","status":"Present"}]},"F-6":{"status":"Pending","invigs":[{"name":"Prasenjit Roy","sl":22,"role":"Invigilation","status":"Present"},{"name":"Ashim Kumar Adhya","sl":40,"role":"Invigilation","status":"Present"}]},"F-6A":{"status":"Pending","invigs":[{"name":"Md Bagbul Islam","sl":20,"role":"Invigilation","status":"Present"},{"name":"Dr. Debtanu Ghosh","sl":49,"role":"Invigilation","status":"Present"}]},"F-7":{"status":"Pending","invigs":[{"name":"Dr. Partha Chatterjee","sl":5,"role":"Invigilation","status":"Present"},{"name":"Jhumpa Pal Datta","sl":52,"role":"Invigilation","status":"Present"}]},"F-9":{"status":"Pending","invigs":[{"name":"Dr. Sandip Kumar Mondal","sl":12,"role":"Invigilation","status":"Present"},{"name":"Sukla Dey Sarkar","sl":68,"role":"Invigilation","status":"Present"}]},"F-11":{"status":"Pending","invigs":[{"name":"Dr. Chandan Kumar Dan","sl":25,"role":"Invigilation","status":"Present"},{"name":"Tapasi Jana Das","sl":72,"role":"Invigilation","status":"Present"}]},"F-19":{"status":"Pending","invigs":[{"name":"Dr. Chiranjib Konar","sl":29,"role":"Invigilation","status":"Present"},{"name":"Dr. Saikat Banerjee","sl":86,"role":"Invigilation","status":"Present"}]},"F-23":{"status":"Pending","invigs":[{"name":"Sanchaita Ghosh","sl":8,"role":"Invigilation","status":"Present"},{"name":"Parimal Kumar Bera","sl":39,"role":"Invigilation","status":"Present"}]},"F-24":{"status":"Pending","invigs":[{"name":"Dr. Ajay Bhattacharya","sl":1,"role":"Invigilation","status":"Present"},{"name":"Abhijit Pakhira","sl":42,"role":"Invigilation","status":"Present"}]},"F-25":{"status":"Pending","invigs":[{"name":"Dr. Animesh Bhattachrayya","sl":18,"role":"Invigilation","status":"Present"},{"name":"Biswajit Patra","sl":28,"role":"Invigilation","status":"Present"},{"name":"Kalpana Das","sl":53,"role":"Invigilation","status":"Present"}]},"Staff Room (Reserve)":{"status":"Pending","invigs":[{"name":"Kathika Adak","sl":54,"role":"Reserve","status":"Present"},{"name":"Mithu Ray","sl":55,"role":"Reserve","status":"Present"},{"name":"Mousumi Pramanik Pal","sl":56,"role":"Reserve","status":"Present"},{"name":"Pradip Kr Chakraborty","sl":57,"role":"Reserve","status":"Present"},{"name":"Sampad Chowdhuri","sl":60,"role":"Reserve","status":"Present"}]},"Asstt. Center-in-Charge & Supervisor":{"status":"Pending","invigs":[{"name":"Dr. Uday Datta","sl":4,"role":"Asstt. Center-in-Charge","status":"Present"},{"name":"Dr. Tanmoy Datta","sl":21,"role":"Supervisor","status":"Present"},{"name":"Tanmoy Dey","sl":23,"role":"Supervisor","status":"Present"}]}}},"12.10.2026 (Monday) - Afternoon":{"rooms":{"F-1":{"status":"Pending","invigs":[{"name":"Dr. Mainak Kumar De","sl":17,"role":"Invigilation","status":"Present"},{"name":"Saswati Sarkar","sl":63,"role":"Invigilation","status":"Present"}]},"F-4":{"status":"Pending","invigs":[{"name":"Priyanka Chowdhuri","sl":10,"role":"Invigilation","status":"Present"},{"name":"Dr. Rina Banerjee Ghosh","sl":50,"role":"Invigilation","status":"Present"}]},"Staff Room (Reserve)":{"status":"Pending","invigs":[{"name":"Shanta Kundu","sl":64,"role":"Reserve","status":"Present"}]},"Asstt. Center-in-Charge & Supervisor":{"status":"Pending","invigs":[{"name":"Dr. Uday Datta","sl":4,"role":"Asstt. Center-in-Charge","status":"Present"},{"name":"Dr. Tanmoy Datta","sl":21,"role":"Supervisor","status":"Present"},{"name":"Tanmoy Dey","sl":23,"role":"Supervisor","status":"Present"}]}}},"13.10.2026 (Tuesday) - Morning":{"rooms":{"F-1":{"status":"Pending","invigs":[{"name":"Dr. Sangram Sinha","sl":14,"role":"Invigilation","status":"Present"},{"name":"Mitra Sarkar","sl":74,"role":"Invigilation","status":"Present"}]},"F-4":{"status":"Pending","invigs":[{"name":"Mitali Mukhopadhyay","sl":2,"role":"Invigilation","status":"Present"},{"name":"Bablu Tudu","sl":75,"role":"Invigilation","status":"Present"}]},"F-5":{"status":"Pending","invigs":[{"name":"Dr. Sibtosh Bandyopadhyay","sl":7,"role":"Invigilation","status":"Present"},{"name":"Sarbajit Roy Chowdhury","sl":16,"role":"Invigilation","status":"Present"},{"name":"Dr. Ayan Kanti Ghosh","sl":46,"role":"Invigilation","status":"Present"},{"name":"Kalicharan Ghosh","sl":80,"role":"Invigilation","status":"Present"}]},"F-6":{"status":"Pending","invigs":[{"name":"Sourav Kumar Modak","sl":11,"role":"Invigilation","status":"Present"},{"name":"Sukanya Nandy","sl":67,"role":"Invigilation","status":"Present"}]},"F-6A":{"status":"Pending","invigs":[{"name":"Dr. Angira Das","sl":24,"role":"Invigilation","status":"Present"},{"name":"Dr. Aparajita Choudhury","sl":77,"role":"Invigilation","status":"Present"}]},"F-7":{"status":"Pending","invigs":[{"name":"Dr. Sampa Ghosh","sl":30,"role":"Invigilation","status":"Present"},{"name":"Gourab Ghosh","sl":79,"role":"Invigilation","status":"Present"}]},"F-9":{"status":"Pending","invigs":[{"name":"Dr. Rituparna Ghosh","sl":38,"role":"Invigilation","status":"Present"},{"name":"Arpita Bhowmik","sl":44,"role":"Invigilation","status":"Present"}]},"F-10":{"status":"Pending","invigs":[{"name":"Dr. Bidhan Chandra Biswas","sl":3,"role":"Invigilation","status":"Present"},{"name":"Dr. Atanu Datta","sl":45,"role":"Invigilation","status":"Present"}]},"F-11":{"status":"Pending","invigs":[{"name":"Dr. Partha Chatterjee","sl":5,"role":"Invigilation","status":"Present"},{"name":"Bidesh Kumar Sur Roy","sl":47,"role":"Invigilation","status":"Present"}]},"F-19":{"status":"Pending","invigs":[{"name":"Sanchaita Ghosh","sl":8,"role":"Invigilation","status":"Present"},{"name":"Prosenjit Chattopadhyay","sl":58,"role":"Invigilation","status":"Present"}]},"F-20":{"status":"Pending","invigs":[{"name":"Anjan Dasgupta","sl":9,"role":"Invigilation","status":"Present"},{"name":"Sambhunath Mondal","sl":59,"role":"Invigilation","status":"Present"}]},"F-23":{"status":"Pending","invigs":[{"name":"Dr. Animesh Bhattachrayya","sl":18,"role":"Invigilation","status":"Present"},{"name":"Susnata Bhattacharyya","sl":70,"role":"Invigilation","status":"Present"}]},"F-24":{"status":"Pending","invigs":[{"name":"Saswati Mukjherjee","sl":62,"role":"Invigilation","status":"Present"},{"name":"Titas Bhaduri","sl":73,"role":"Invigilation","status":"Present"}]},"F-25":{"status":"Pending","invigs":[{"name":"Parimal Kumar Bera","sl":39,"role":"Invigilation","status":"Present"},{"name":"Jhumpa Pal Datta","sl":52,"role":"Invigilation","status":"Present"},{"name":"Sukla Dey Sarkar","sl":68,"role":"Invigilation","status":"Present"},{"name":"Tapasi Jana Das","sl":72,"role":"Invigilation","status":"Present"}]},"Staff Room (Reserve)":{"status":"Pending","invigs":[{"name":"Ashim Kumar Adhya","sl":40,"role":"Reserve","status":"Present"},{"name":"Abhijit Pakhira","sl":42,"role":"Reserve","status":"Present"},{"name":"Mithu Ray","sl":55,"role":"Reserve","status":"Present"},{"name":"Pradip Kr Chakraborty","sl":57,"role":"Reserve","status":"Present"}]},"Asstt. Center-in-Charge & Supervisor":{"status":"Pending","invigs":[{"name":"Dr. Uday Datta","sl":4,"role":"Asstt. Center-in-Charge","status":"Present"},{"name":"Dr. Tanmoy Datta","sl":21,"role":"Supervisor","status":"Present"},{"name":"Tanmoy Dey","sl":23,"role":"Supervisor","status":"Present"}]}}},"13.10.2026 (Tuesday) - Afternoon":{"rooms":{"F-1":{"status":"Pending","invigs":[{"name":"Prothoma Saha","sl":32,"role":"Invigilation","status":"Present"},{"name":"Sanjoy Kumar","sl":61,"role":"Invigilation","status":"Present"}]},"F-4":{"status":"Pending","invigs":[{"name":"Dr. Rajib Majumder","sl":15,"role":"Invigilation","status":"Present"},{"name":"Dr. Dulal Kumbhakar","sl":78,"role":"Invigilation","status":"Present"}]},"F-5":{"status":"Pending","invigs":[{"name":"Chayan Das","sl":26,"role":"Invigilation","status":"Present"},{"name":"Anal Mondal","sl":35,"role":"Invigilation","status":"Present"},{"name":"Dr. Koushik Chakraborty","sl":41,"role":"Invigilation","status":"Present"},{"name":"Sayan Dey","sl":87,"role":"Invigilation","status":"Present"}]},"F-6":{"status":"Pending","invigs":[{"name":"Dr. Abid Hasan","sl":37,"role":"Invigilation","status":"Present"},{"name":"Indrajit Chatterjee","sl":51,"role":"Invigilation","status":"Present"}]},"F-6A":{"status":"Pending","invigs":[{"name":"Pramila Soren","sl":36,"role":"Invigilation","status":"Present"},{"name":"Madhumanti Sinha","sl":82,"role":"Invigilation","status":"Present"}]},"F-7":{"status":"Pending","invigs":[{"name":"Soma Mitra","sl":19,"role":"Invigilation","status":"Present"},{"name":"Madhupa Samanta","sl":83,"role":"Invigilation","status":"Present"}]},"F-9":{"status":"Pending","invigs":[{"name":"Priyanka Chowdhuri","sl":10,"role":"Invigilation","status":"Present"},{"name":"Priya Patra","sl":85,"role":"Invigilation","status":"Present"}]},"F-10":{"status":"Pending","invigs":[{"name":"Dr. Mainak Kumar De","sl":17,"role":"Invigilation","status":"Present"},{"name":"Somjit Banerjee","sl":88,"role":"Invigilation","status":"Present"}]},"F-11":{"status":"Pending","invigs":[{"name":"Dr. Nandita Barui","sl":27,"role":"Invigilation","status":"Present"},{"name":"Souvik Chattopadhyay","sl":89,"role":"Invigilation","status":"Present"}]},"F-19":{"status":"Pending","invigs":[{"name":"Prosenjit Ghosh","sl":31,"role":"Invigilation","status":"Present"},{"name":"Sramana Chatterjee","sl":90,"role":"Invigilation","status":"Present"}]},"F-20":{"status":"Pending","invigs":[{"name":"Dr. Dipan Das","sl":33,"role":"Invigilation","status":"Present"},{"name":"Subhadeep Dutta","sl":91,"role":"Invigilation","status":"Present"}]},"F-23":{"status":"Pending","invigs":[{"name":"Aniruddha Chatterjee","sl":34,"role":"Invigilation","status":"Present"},{"name":"Dr. Tanmoy Seth","sl":92,"role":"Invigilation","status":"Present"}]},"F-24":{"status":"Pending","invigs":[{"name":"Md Bagbul Islam","sl":20,"role":"Invigilation","status":"Present"},{"name":"Tusita Pal","sl":93,"role":"Invigilation","status":"Present"}]},"F-25":{"status":"Pending","invigs":[{"name":"Dr. Ajay Bhattacharya","sl":1,"role":"Invigilation","status":"Present"},{"name":"Dr. Debtanu Ghosh","sl":49,"role":"Invigilation","status":"Present"},{"name":"Dr. Rina Banerjee Ghosh","sl":50,"role":"Invigilation","status":"Present"},{"name":"Saswati Sarkar","sl":63,"role":"Invigilation","status":"Present"}]},"Staff Room (Reserve)":{"status":"Pending","invigs":[{"name":"Biswajit Patra","sl":28,"role":"Reserve","status":"Present"},{"name":"Shanta Kundu","sl":64,"role":"Reserve","status":"Present"},{"name":"Dr. Saikat Banerjee","sl":86,"role":"Reserve","status":"Present"}]},"Asstt. Center-in-Charge & Supervisor":{"status":"Pending","invigs":[{"name":"Dr. Uday Datta","sl":4,"role":"Asstt. Center-in-Charge","status":"Present"},{"name":"Dr. Tanmoy Datta","sl":21,"role":"Supervisor","status":"Present"},{"name":"Tanmoy Dey","sl":23,"role":"Supervisor","status":"Present"}]}}},"14.10.2026 (Wednesday) - Morning":{"rooms":{"F-1":{"status":"Pending","invigs":[{"name":"Pramila Majhi","sl":13,"role":"Invigilation","status":"Present"},{"name":"Binayak Roy","sl":48,"role":"Invigilation","status":"Present"}]},"F-4":{"status":"Pending","invigs":[{"name":"Dr. Sandip Kumar Mondal","sl":12,"role":"Invigilation","status":"Present"},{"name":"Lipika Paul","sl":81,"role":"Invigilation","status":"Present"}]},"F-5":{"status":"Pending","invigs":[{"name":"Mitali Mukhopadhyay","sl":2,"role":"Invigilation","status":"Present"},{"name":"Dr. Sangram Sinha","sl":14,"role":"Invigilation","status":"Present"},{"name":"Sk Abdul Rofik","sl":65,"role":"Invigilation","status":"Present"},{"name":"Dr. Suvajit Samanta","sl":71,"role":"Invigilation","status":"Present"}]},"F-6A":{"status":"Pending","invigs":[{"name":"Soma Mitra","sl":19,"role":"Invigilation","status":"Present"},{"name":"Sugata Adak","sl":66,"role":"Invigilation","status":"Present"}]},"F-6":{"status":"Pending","invigs":[{"name":"Dr. Chandan Kumar Dan","sl":25,"role":"Invigilation","status":"Present"},{"name":"Suman Maji","sl":69,"role":"Invigilation","status":"Present"}]},"F-7":{"status":"Pending","invigs":[{"name":"Chayan Das","sl":26,"role":"Invigilation","status":"Present"},{"name":"Dr. Ananda Mukherjee","sl":43,"role":"Invigilation","status":"Present"}]},"F-19":{"status":"Pending","invigs":[{"name":"Dr. Sibtosh Bandyopadhyay","sl":7,"role":"Invigilation","status":"Present"},{"name":"Mitra Sarkar","sl":74,"role":"Invigilation","status":"Present"}]},"Staff Room (Reserve)":{"status":"Pending","invigs":[{"name":"Kalpana Das","sl":53,"role":"Reserve","status":"Present"},{"name":"Kathika Adak","sl":54,"role":"Reserve","status":"Present"},{"name":"Bablu Tudu","sl":75,"role":"Reserve","status":"Present"}]},"Asstt. Center-in-Charge & Supervisor":{"status":"Pending","invigs":[{"name":"Dr. Uday Datta","sl":4,"role":"Asstt. Center-in-Charge","status":"Present"},{"name":"Dr. Tanmoy Datta","sl":21,"role":"Supervisor","status":"Present"},{"name":"Tanmoy Dey","sl":23,"role":"Supervisor","status":"Present"}]}}},"14.10.2026 (Wednesday) - Afternoon":{"rooms":{"F-1":{"status":"Pending","invigs":[{"name":"Pramila Soren","sl":36,"role":"Invigilation","status":"Present"},{"name":"Mousumi Pramanik Pal","sl":56,"role":"Invigilation","status":"Present"}]},"F-4":{"status":"Pending","invigs":[{"name":"Dr. Chiranjib Konar","sl":29,"role":"Invigilation","status":"Present"},{"name":"Sampad Chowdhuri","sl":60,"role":"Invigilation","status":"Present"}]},"F-5":{"status":"Pending","invigs":[{"name":"Dr. Rajib Majumder","sl":15,"role":"Invigilation","status":"Present"},{"name":"Prothoma Saha","sl":32,"role":"Invigilation","status":"Present"},{"name":"Sanjoy Kumar","sl":61,"role":"Invigilation","status":"Present"},{"name":"Sukanya Nandy","sl":67,"role":"Invigilation","status":"Present"}]},"F-6A":{"status":"Pending","invigs":[{"name":"Anal Mondal","sl":35,"role":"Invigilation","status":"Present"},{"name":"Dr. Dulal Kumbhakar","sl":78,"role":"Invigilation","status":"Present"}]},"F-6":{"status":"Pending","invigs":[{"name":"Dr. Angira Das","sl":24,"role":"Invigilation","status":"Present"},{"name":"Dr. Koushik Chakraborty","sl":41,"role":"Invigilation","status":"Present"}]},"Staff Room (Reserve)":{"status":"Pending","invigs":[{"name":"Dr. Ayan Kanti Ghosh","sl":46,"role":"Reserve","status":"Present"},{"name":"Sayan Dey","sl":87,"role":"Reserve","status":"Present"}]},"Asstt. Center-in-Charge & Supervisor":{"status":"Pending","invigs":[{"name":"Dr. Uday Datta","sl":4,"role":"Asstt. Center-in-Charge","status":"Present"},{"name":"Dr. Tanmoy Datta","sl":21,"role":"Supervisor","status":"Present"},{"name":"Tanmoy Dey","sl":23,"role":"Supervisor","status":"Present"}]}}}}/*STATE_END*/;
+            let p5_currentSession = null;
+            let p5_currentRoom = null;
+            
+            function getColumnName(row, keywords) {
+      if (!row) return null;
+      const keys = Object.keys(row);
+      for (let kw of keywords) {
+        for (let k of keys) {
+          if (k.toLowerCase().includes(kw)) return k;
+        }
+      }
+      return null;
+    }
+            function parseSlotDate(slotStr) {
+      if(!slotStr || String(slotStr).includes("Unscheduled")) return new Date(8640000000000000).getTime();
+      let parts = String(slotStr).split('-');
+      let datePart = parts[0].trim();
+      let shiftPart = parts.length > 1 ? parts[1].trim().toLowerCase() : "";
+      let dParts = datePart.split('.');
+      if(dParts.length === 3) {
+          let timeBias = shiftPart.includes('morning') ? 0 : (shiftPart.includes('afternoon') ? 2 : 1);
+          return new Date(dParts[2], dParts[1]-1, dParts[0]).getTime() + timeBias;
+      }
+      return 0;
+    }
+            function compareRooms(r1, r2) {
+      if (r1 === "Asstt. Center-in-Charge & Supervisor") return -1;
+      if (r2 === "Asstt. Center-in-Charge & Supervisor") return 1;
+      if (String(r1).includes("Staff Room")) return 1;
+      if (String(r2).includes("Staff Room")) return -1;
+      const regex = /^(\D*)(\d*)(\D*)$/;
+      const m1 = String(r1).match(regex) || [String(r1), String(r1), "0", ""];
+      const m2 = String(r2).match(regex) || [String(r2), String(r2), "0", ""];
+      let p1 = m1[1], n1 = parseInt(m1[2] || "0", 10), s1 = m1[3];
+      let p2 = m2[1], n2 = parseInt(m2[2] || "0", 10), s2 = m2[3];
+      if (p1 !== p2) return p1.localeCompare(p2);
+      if (n1 !== n2) return n1 - n2;
+      return s1.localeCompare(s2);
+    }
+            function p5_initWorkspace() {
+       p5_state = {};
+       const dCol = getColumnName(p5_chartData[0], ['date']); const sCol = getColumnName(p5_chartData[0], ['shift']); const rCol = getColumnName(p5_chartData[0], ['room']);
+       p5_chartData.forEach(row => {
+           let date = row[dCol]; let shift = row[sCol]; let room = row[rCol]; if(!date || !room) return; let sessKey = `${date} - ${shift}`;
+           if(!p5_state[sessKey]) p5_state[sessKey] = { rooms: {} };
+           if(!p5_state[sessKey].rooms[room]) {
+               let invigs = [];
+               Object.keys(row).filter(k => k.toLowerCase().includes('invigilator')).forEach(ik => {
+                   let rawStr = String(row[ik]).trim(); if(!rawStr) return; 
+                   
+                   let name = rawStr.split(',')[0].trim();
+                   let roleName = rawStr.includes(',') ? rawStr.split(',')[1].trim() : "Invigilation";
+                   
+                   let sl = 999;
+                   let fac_nameCol = getColumnName(p5_facultyListRaw[0], ['name', 'teacher']);
+                   let fac_slCol = getColumnName(p5_facultyListRaw[0], ['serial', 'sl']);
+                   
+                   let foundFac = p5_facultyListRaw.find(f => String(f[fac_nameCol]).trim() === name);
+                   if (foundFac) sl = parseInt(foundFac[fac_slCol], 10);
+                   
+                   invigs.push({ name: name, sl: sl, role: roleName, status: "Present" });
+               });
+               p5_state[sessKey].rooms[room] = { status: "Pending", invigs: invigs };
+           }
+       });
+       const sel = document.getElementById('p5_sessionSelect'); sel.innerHTML = '';
+       let sortedKeys = Object.keys(p5_state).sort((a,b) => parseSlotDate(a) - parseSlotDate(b));
+       sortedKeys.forEach(k => { sel.innerHTML += `<option value="${k}">${k}</option>`; });
+       
+       document.getElementById('p5_workspaceContainer').classList.remove('hidden'); 
+       p5_loadSession();
+    }
+            function p5_loadSession() {
+       p5_currentSession = document.getElementById('p5_sessionSelect').value; p5_currentRoom = null;
+       document.getElementById('p5_mainPanel').style.display = 'none'; document.getElementById('p5_emptyPanel').style.display = 'flex'; p5_renderRoomList();
+    }
+            function p5_renderRoomList() {
+       const roomListDiv = document.getElementById('p5_roomList'); roomListDiv.innerHTML = '';
+       if(!p5_currentSession || !p5_state[p5_currentSession]) return;
+       let rooms = p5_state[p5_currentSession].rooms; let rKeys = Object.keys(rooms).sort((a,b) => compareRooms(a, b));
+       document.getElementById('p5_roomCount').innerText = rKeys.length;
+       rKeys.forEach(r => {
+           let rData = rooms[r]; let div = document.createElement('div'); div.className = `room-item ${rData.status.toLowerCase()}`;
+           if(p5_currentRoom === r) div.classList.add('active');
+           div.innerHTML = `<span>${r}</span> <span>${rData.status}</span>`; div.onclick = () => p5_openRoom(r); roomListDiv.appendChild(div);
+       });
+    }
+            function p5_openRoom(roomNo) {
+       p5_currentRoom = roomNo; p5_renderRoomList();
+       document.getElementById('p5_emptyPanel').style.display = 'none'; document.getElementById('p5_mainPanel').style.display = 'block';
+       document.getElementById('p5_roomTitle').innerText = `Room: ${roomNo}`; p5_renderRoomEditor();
+    }
+            function p5_renderRoomEditor() {
+       let rData = p5_state[p5_currentSession].rooms[p5_currentRoom];
+       let badge = document.getElementById('p5_roomStatusBadge'); badge.innerText = rData.status;
+       badge.style.backgroundColor = rData.status === "Completed" ? "#e6f4ea" : "#fef9e7"; badge.style.color = rData.status === "Completed" ? "#137333" : "#d35400"; badge.style.borderColor = rData.status === "Completed" ? "#b7e1cd" : "#f39c12";
+
+       let html = '';
+       rData.invigs.forEach((invig, idx) => {
+           let isAbsent = invig.status === "Absent"; let rowClass = isAbsent ? 'attend-row absent' : 'attend-row';
+           let rolePill = `<span style="background:#e1e8ed; padding:2px 6px; border-radius:4px; font-size:11px;">${invig.role}</span>`;
+           html += `<div class="${rowClass}">
+               <div><strong>${invig.name}</strong> <span style="color:#666; font-size:12px;">(Sl: ${invig.sl})</span> ${rolePill}</div>
+               <div><select onchange="p5_updateStatus(${idx}, this.value)" style="margin:0; width:120px; font-weight:bold; ${isAbsent ? 'color:var(--danger);' : 'color:var(--accent);'}">
+                      <option value="Present" ${!isAbsent ? 'selected' : ''}>Present</option><option value="Absent" ${isAbsent ? 'selected' : ''}>Absent</option>
+                   </select></div></div>`;
+       });
+       document.getElementById('p5_invigListContainer').innerHTML = html; p5_populateExtraDropdown();
+    }
+            function p5_updateStatus(idx, val) { p5_state[p5_currentSession].rooms[p5_currentRoom].invigs[idx].status = val; p5_state[p5_currentSession].rooms[p5_currentRoom].status = "Pending"; p5_renderRoomEditor(); p5_renderRoomList(); }
+            function p5_populateExtraDropdown() {
+       let fac_slCol = getColumnName(p5_facultyListRaw[0], ['serial', 'sl']); let fac_nameCol = getColumnName(p5_facultyListRaw[0], ['name', 'teacher']);
+       let sel = document.getElementById('p5_extraFacultySelect'); sel.innerHTML = '<option value="">-- Select Faculty --</option>';
+       
+       let busySl = new Set();
+       Object.keys(p5_state[p5_currentSession].rooms).forEach(r => {
+           if (r !== "Staff Room (Reserve)") {
+               p5_state[p5_currentSession].rooms[r].invigs.forEach(invig => {
+                   if (invig.status === "Present") {
+                       busySl.add(invig.sl);
+                   }
+               });
+           }
+       });
+
+       p5_facultyListRaw.forEach(f => {
+           let sl = parseInt(f[fac_slCol], 10);
+           if(!isNaN(sl) && !busySl.has(sl)) {
+               sel.innerHTML += `<option value="${sl}">${f[fac_nameCol]} (Sl: ${sl})</option>`;
+           }
+       });
+    }
+            function p5_addExtraInvig() {
+       let sel = document.getElementById('p5_extraFacultySelect'); if(!sel.value) return;
+       let sl = parseInt(sel.value, 10); let name = sel.options[sel.selectedIndex].text.split(' (')[0];
+       
+       let staffRoom = p5_state[p5_currentSession].rooms["Staff Room (Reserve)"];
+       if (staffRoom) {
+           let idx = staffRoom.invigs.findIndex(i => i.sl === sl);
+           if (idx > -1) {
+               staffRoom.invigs.splice(idx, 1);
+           }
+       }
+       
+       p5_state[p5_currentSession].rooms[p5_currentRoom].invigs.push({ sl: sl, name: name, role: "Invigilation", status: "Present" });
+       p5_state[p5_currentSession].rooms[p5_currentRoom].status = "Pending"; p5_renderRoomEditor(); p5_renderRoomList();
+    }
+            function p5_saveRoom() { p5_state[p5_currentSession].rooms[p5_currentRoom].status = "Completed"; p5_renderRoomEditor(); p5_renderRoomList(); }
+            function p5_exportRemuneration() {
+       if (!p5_currentSession) return alert("Please select a session from the Attendance Workspace.");
+       let allCompleted = true;
+       Object.keys(p5_state[p5_currentSession].rooms).forEach(r => { if (p5_state[p5_currentSession].rooms[r].status !== "Completed") allCompleted = false; });
+       if (!allCompleted) return alert("Presence/Absence report can only be generated if all rooms are marked 'Completed' for the chosen date and time.");
+       const wb = XLSX.utils.book_new(); 
+       let output = [];
+       let [dateStr, shiftStr] = p5_currentSession.split(' - '); 
+       dateStr = dateStr.trim(); shiftStr = shiftStr ? shiftStr.trim() : "";
+       let rKeys = Object.keys(p5_state[p5_currentSession].rooms).sort((a,b) => compareRooms(a, b));
+       rKeys.forEach(r => {
+           p5_state[p5_currentSession].rooms[r].invigs.forEach(invig => {
+               output.push({ "Date": dateStr, "Shift": shiftStr, "Room No": r, "Teacher Name": invig.name, "Serial No": invig.sl, "Role": r === "Asstt. Center-in-Charge & Supervisor" ? invig.role : "Invigilation", "Attendance": invig.status });
+           });
+       });
+       let safeName = dateStr.replace(/[\/\\\?\*\[\]:]/g, '-'); 
+       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(output), safeName + " " + shiftStr);
+       XLSX.writeFile(wb, "Presence_Absence_Report_" + safeName + "_" + shiftStr + ".xlsx");
+    }
+            function p5_generateFacultyReportData() {
+        let fac_slCol = getColumnName(p5_facultyListRaw[0], ['serial', 'sl']);
+        let fac_nameCol = getColumnName(p5_facultyListRaw[0], ['name', 'teacher']);
+        let reportData = [];
+        let sessionKeys = Object.keys(p5_state).sort((a,b) => parseSlotDate(a.split(' - ')[0]) - parseSlotDate(b.split(' - ')[0]));
+        p5_facultyListRaw.forEach(f => {
+            let sl = parseInt(f[fac_slCol], 10);
+            if(isNaN(sl)) return;
+            let name = f[fac_nameCol];
+            let row = { "Serial No": sl, "Faculty Name": name };
+            let totalDuties = 0;
+            sessionKeys.forEach(sessKey => {
+                let statusForSession = "Not Assigned";
+                let rooms = p5_state[sessKey].rooms;
+                for(let r in rooms) {
+                    let roomData = rooms[r];
+                    let invig = roomData.invigs.find(i => i.sl === sl);
+                    if(invig) {
+                        if(roomData.status === "Completed") {
+                            statusForSession = invig.status; 
+                            if(invig.status === "Present") totalDuties++;
+                        } else {
+                            statusForSession = "Pending";
+                        }
+                        break; 
+                    }
+                }
+                row[sessKey] = statusForSession;
+            });
+            row["Total Duties Performed"] = totalDuties;
+            reportData.push(row);
+        });
+        reportData.sort((a,b) => a["Serial No"] - b["Serial No"]);
+        return { data: reportData, sessionKeys: sessionKeys };
+    }
+            function p5_exportFacultyExcel() {
+        if(Object.keys(p5_state).length === 0) return alert("No workspace data found.");
+        let report = p5_generateFacultyReportData();
+        const wb = XLSX.utils.book_new(); 
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(report.data), "Faculty Wise Report");
+        XLSX.writeFile(wb, "Faculty_Wise_Attendance_Report.xlsx");
+    }
+            function p5_exportFacultyDOCX() {
+        if(Object.keys(p5_state).length === 0) return alert("No workspace data found.");
+        let report = p5_generateFacultyReportData();
+        let cName = document.getElementById('p5_docx_collegeName').value || "College Name";
+        let eName = document.getElementById('p5_docx_examName').value || "Examination Name";
+        let semName = document.getElementById('p5_docx_semester').value || "Semester";
+        
+        let content = `<div style="text-align:center; margin-bottom: 15px;">
+            <h2 style="margin: 0; font-size: 16pt; text-transform: uppercase; font-family: 'Times New Roman', Times, serif;">${cName}</h2>
+            <h3 style="margin: 4px 0; font-size: 12pt; font-family: 'Times New Roman', Times, serif;">${eName} - ${semName}</h3>
+            <h4 style="margin: 4px 0; font-size: 11pt; font-family: 'Times New Roman', Times, serif; text-decoration: underline;">Consolidated Faculty-wise Duty Report</h4>
+        </div>`;
+        
+        let sessionCount = report.sessionKeys.length;
+        let colWidth = sessionCount > 0 ? (75 / sessionCount) : 10;
+        
+        content += `<table border="1"><thead><tr><th style="width: 4%;">Sl.</th><th style="width: 14%;">Faculty Name</th>`;
+        report.sessionKeys.forEach(sk => { content += `<th style="width: ${colWidth}%;">${sk}</th>`; });
+        content += `<th style="width: 7%;">Total Duties</th></tr></thead><tbody>`;
+        report.data.forEach(row => {
+            content += `<tr><td style="text-align:center;"><strong>${row["Serial No"]}</strong></td><td style="text-align:left; padding-left:4px;"><strong>${row["Faculty Name"]}</strong></td>`;
+            report.sessionKeys.forEach(sk => {
+                let stat = row[sk];
+                let color = stat === "Present" ? "#137333" : (stat === "Absent" ? "#c0392b" : (stat === "Pending" ? "#d35400" : "#000000"));
+                content += `<td style="color:${color}; text-align:center;">${stat}</td>`;
+            });
+            content += `<td style="text-align:center;"><strong>${row["Total Duties Performed"]}</strong></td></tr>`;
+        });
+        content += `</tbody></table>`;
+        
+        let preHtml = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+        <head>
+            <meta charset='utf-8'>
+            <title>Faculty Wise Report</title>
+            <style>
+                @page WordSection1 {
+                    size: 841.9pt 595.3pt; /* A4 Landscape */
+                    mso-page-orientation: landscape;
+                    margin: 0.5in 0.5in 0.5in 0.5in;
+                }
+                div.WordSection1 { page: WordSection1; }
+                table { width:100%; border-collapse: collapse; margin-bottom: 20px; font-family: 'Times New Roman', Times, serif; }
+                th, td { border: 1px solid black; padding: 3px; font-size: 8pt; vertical-align: middle; word-wrap: break-word; }
+                th { background-color: #f2f2f2; font-weight: bold; text-align: center; }
+            </style>
+        </head>
+        <body><div class="WordSection1">`;
+        let postHtml = "</div></body></html>";
+        let fullHtml = preHtml + content + postHtml;
+        
+        let blob = new Blob(['\ufeff', fullHtml], { type: 'application/msword' });
+        let url = URL.createObjectURL(blob);
+        let link = document.createElement("a");
+        link.href = url;
+        link.download = "Faculty_Wise_Attendance_Report.doc";
+        document.body.appendChild(link); link.click(); document.body.removeChild(link);
+    }
+            
+            function p5_exportStandaloneHTML(isAuto) {
+                if(isAuto) return;
+                let currentHTML = "<!DOCTYPE html>\n<html lang=\"en\">\n" + document.documentElement.innerHTML + "\n</html>";
+                let newStateStr = JSON.stringify(p5_state);
+                let updatedHTML = currentHTML.replace(/\/\*STATE_START\*\/.*?\/\*STATE_END\*\//, "/*STATE_START*/" + newStateStr + "/*STATE_END*/");
+                
+                let blob = new Blob([updatedHTML], { type: "text/html" });
+                let url = URL.createObjectURL(blob);
+                let link = document.createElement("a");
+                link.href = url;
+                link.download = "Supervisor_Portal_Standalone.html";
+                link.click();
+                alert("Progress Saved! A new updated Standalone Portal file has been downloaded to your computer.");
+            }
+            
+            window.onload = function() {
+                document.getElementById('p5_workspaceContainer').classList.remove('hidden');
+                p5_initWorkspace();
+            };
+        </script>
+</body>
+</html>
